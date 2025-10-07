@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CYBERPUNK OREGON TRAIL // TERMINAL INTERFACE v2.1</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #000000;
+        color: #00ff00;
+        font-family: "Courier Prime", "Courier New", monospace;
+        font-size: 14px;
+        line-height: 1.4;
+        overflow: hidden;
+        height: 100vh;
+        user-select: none;
+      }
+
+      .crt-effect {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1000;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 255, 0, 0.03) 2px,
+          rgba(0, 255, 0, 0.03) 4px
+        );
+        animation: scanlines 0.1s linear infinite;
+      }
+
+      @keyframes scanlines {
+        0% {
+          transform: translateY(0px);
+        }
+        100% {
+          transform: translateY(4px);
+        }
+      }
+
+      .terminal-container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        border: 2px solid #003300;
+        box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1),
+          0 0 20px rgba(0, 255, 0, 0.2);
+      }
+
+      .terminal-header {
+        background: #001100;
+        padding: 8px 16px;
+        border-bottom: 1px solid #003300;
+        font-weight: 700;
+        text-shadow: 0 0 10px #00ff00;
+        animation: glow 2s ease-in-out infinite alternate;
+      }
+
+      @keyframes glow {
+        from {
+          text-shadow: 0 0 10px #00ff00;
+        }
+        to {
+          text-shadow: 0 0 20px #00ff00, 0 0 30px #00ff00;
+        }
+      }
+
+      .terminal-main {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+      }
+
+      .game-display {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+        background: #000000;
+      }
+
+      .status-panel {
+        width: 300px;
+        background: #001100;
+        border-left: 1px solid #003300;
+        padding: 16px;
+        overflow-y: auto;
+      }
+
+      .command-line {
+        background: #001100;
+        border-top: 1px solid #003300;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+      }
+
+      .prompt {
+        color: #00ff00;
+        font-weight: 700;
+        margin-right: 8px;
+        animation: blink 1s infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        50% {
+          opacity: 1;
+        }
+        51%,
+        100% {
+          opacity: 0;
+        }
+      }
+
+      .command-input {
+        background: transparent;
+        border: none;
+        color: #00ff00;
+        font-family: inherit;
+        font-size: inherit;
+        outline: none;
+        flex: 1;
+        text-shadow: 0 0 5px #00ff00;
+      }
+
+      .command-input::placeholder {
+        color: #007700;
+      }
+
+      .game-text {
+        margin-bottom: 16px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+      }
+
+      .typing-text {
+        overflow: hidden;
+        white-space: nowrap;
+        animation: typing 0.05s steps(1, end) forwards;
+      }
+
+      @keyframes typing {
+        from {
+          width: 0;
+        }
+        to {
+          width: 100%;
+        }
+      }
+
+      .status-section {
+        margin-bottom: 20px;
+        border: 1px solid #003300;
+        padding: 12px;
+        background: #000800;
+      }
+
+      .status-title {
+        color: #00ffff;
+        font-weight: 700;
+        margin-bottom: 8px;
+        text-shadow: 0 0 8px #00ffff;
+      }
+
+      .resource-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+
+      .resource-value {
+        color: #ffb000;
+        font-weight: 700;
+      }
+
+      .team-member {
+        margin-bottom: 8px;
+        padding: 4px 8px;
+        background: #001a00;
+        border-left: 3px solid;
+      }
+
+      .team-member.healthy {
+        border-left-color: #00ff00;
+      }
+
+      .team-member.injured {
+        border-left-color: #ffb000;
+      }
+
+      .member-name {
+        color: #00ffff;
+        font-weight: 700;
+      }
+
+      .member-status {
+        color: #ffb000;
+        font-size: 12px;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #001100;
+        border: 1px solid #003300;
+        margin: 8px 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00ff00, #00ffff);
+        transition: width 0.3s ease;
+        box-shadow: 0 0 10px #00ff00;
+      }
+
+      .menu-option {
+        color: #00ffff;
+        cursor: pointer;
+        padding: 4px 8px;
+        margin: 2px 0;
+        border-left: 2px solid transparent;
+        transition: all 0.2s ease;
+      }
+
+      .menu-option:hover {
+        background: #001a00;
+        border-left-color: #00ffff;
+        text-shadow: 0 0 8px #00ffff;
+      }
+
+      .error-text {
+        color: #ff00ff;
+        text-shadow: 0 0 10px #ff00ff;
+      }
+
+      .warning-text {
+        color: #ffb000;
+        text-shadow: 0 0 8px #ffb000;
+      }
+
+      .success-text {
+        color: #00ff41;
+        text-shadow: 0 0 8px #00ff41;
+      }
+
+      .glitch-effect {
+        animation: glitch 0.1s infinite;
+      }
+
+      @keyframes glitch {
+        0% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-2px);
+        }
+        50% {
+          transform: translateX(2px);
+        }
+        75% {
+          transform: translateX(-1px);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+
+      .digital-rain {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        opacity: 0.1;
+        font-size: 10px;
+        color: #007700;
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        .terminal-main {
+          flex-direction: column;
+        }
+
+        .status-panel {
+          width: 100%;
+          height: 200px;
+          border-left: none;
+          border-top: 1px solid #003300;
+        }
+
+        body {
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="crt-effect"></div>
+
+    <div class="terminal-container">
+      <div class="terminal-header">
+        CYBERPUNK OREGON TRAIL // DATA HAVEN EXPRESS // TERMINAL v2.1
+      </div>
+
+      <div class="terminal-main">
+        <div class="game-display" id="gameDisplay">
+          <div class="digital-rain" id="digitalRain"></div>
+          <div id="gameText"></div>
+        </div>
+
+        <div class="status-panel" id="statusPanel">
+          <div class="status-section">
+            <div class="status-title">RESOURCES</div>
+            <div class="resource-item">
+              <span>Credits:</span>
+              <span class="resource-value" id="credits">0</span>
+            </div>
+            <div class="resource-item">
+              <span>Data Chips:</span>
+              <span class="resource-value" id="dataChips">0</span>
+            </div>
+            <div class="resource-item">
+              <span>Energy Cells:</span>
+              <span class="resource-value" id="energyCells">0</span>
+            </div>
+          </div>
+
+          <div class="status-section">
+            <div class="status-title">TEAM STATUS</div>
+            <div id="teamMembers"></div>
+          </div>
+
+          <div class="status-section">
+            <div class="status-title">JOURNEY PROGRESS</div>
+            <div class="resource-item">
+              <span>Distance:</span>
+              <span class="resource-value"
+                ><span id="distanceTraveled">0</span>/<span id="totalDistance"
+                  >2000</span
+                >
+                km</span
+              >
+            </div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                id="progressFill"
+                style="width: 0%"
+              ></div>
+            </div>
+            <div class="resource-item">
+              <span>Location:</span>
+              <span class="resource-value" id="currentLocation">null</span>
+            </div>
+          </div>
+
+          <div class="status-section">
+            <div class="status-title">SYSTEM STATUS</div>
+            <div class="resource-item">
+              <span>Date:</span>
+              <span class="resource-value" id="gameDate">null</span>
+            </div>
+            <div class="resource-item">
+              <span>Weather:</span>
+              <span class="resource-value" id="weather">null</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="command-line">
+        <span class="prompt">></span>
+        <input
+          type="text"
+          id="commandInput"
+          class="command-input"
+          placeholder="Enter command (HELP for options)..."
+          autocomplete="off"
+        />
+      </div>
+    </div>
+
+    <script src="dist/terminal.js"></script>
+    <script src="dist/game.js"></script>
+  </body>
+</html>
