@@ -1,15 +1,20 @@
 {
-  "name": "okcomputer_cyberpunk-oregon-trail",
+  "name": "datarunners",
   "version": "1.0.0",
   "main": "game.js",
+  "type": "module",
   "scripts": {
     "build": "tsc",
-    "watch": "tsc --watch"
+    "dev": "concurrently \"http-server . -c-1 -p 8080\" \"tsc --watch\"",
+    "watch": "tsc --watch",
+    "start": "http-server . -c-1 -p 8080"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "concurrently": "^9.2.1",
+    "http-server": "^14.1.1",
     "typescript": "^5.9.3"
   }
 }

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Chiptune Editor</title>
+    <style>
+      :root {
+        --accent: #6ee7b7;
+        --muted: #6b7280;
+        --bg: #0f172a;
+        --panel: #081028;
+        --glass: rgba(255, 255, 255, 0.03);
+      }
+      html,
+      body {
+        height: 100%;
+        background: linear-gradient(180deg, #071025 0%, #06122a 100%);
+        color: #e6eef6;
+      }
+      body {
+        font-family: Inter, system-ui, sans-serif;
+        padding: 20px;
+        max-width: 980px;
+        margin: auto;
+        -webkit-font-smoothing: antialiased;
+      }
+      h1 {
+        margin: 0 0 14px 0;
+        font-weight: 600;
+      }
+      .controls {
+        background: var(--glass);
+        padding: 12px;
+        border-radius: 10px;
+        align-items: center;
+      }
+      .panel {
+        background: rgba(255, 255, 255, 0.02);
+        padding: 12px;
+        border-radius: 10px;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      textarea {
+        width: 100%;
+        height: 320px;
+        font-family: monospace;
+        font-size: 13px;
+        background: rgba(0, 0, 0, 0.4);
+        color: #eaf2ff;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        padding: 8px;
+        border-radius: 6px;
+      }
+      .panel {
+        margin-top: 12px;
+      }
+      label {
+        font-size: 14px;
+        display: block;
+        margin-bottom: 6px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .small {
+        font-size: 13px;
+        color: #666;
+      }
+      .note-preview {
+        width: 80px;
+      }
+      /* buttons */
+      button {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.03),
+          rgba(255, 255, 255, 0.01)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        color: #eaf2ff;
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button.primary {
+        background: linear-gradient(180deg, #22c55e, #16a34a);
+        color: #02140a;
+        font-weight: 700;
+      }
+      select {
+        background: rgba(0, 0, 0, 0.4);
+        color: #eaf2ff;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .topbar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      #meta {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      #nowPlaying {
+        font-weight: 600;
+        color: var(--accent);
+      }
+      .progress {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        overflow: hidden;
+        width: 100%;
+      }
+      .progress > i {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #6ee7b7, #34d399);
+        width: 0%;
+        transition: width 0.08s linear;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        border-radius: 8px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(0, 0, 0, 0.2)
+        );
+      }
+      #vu {
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.02);
+        display: block;
+      }
+      .controls-left {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .json-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .muted {
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Chiptune — Editor & Tester</h1>
+
+    <div class="controls topbar">
+      <div class="controls-left">
+        <button id="initBtn">🔊 Init Audio</button>
+        <select id="trackSelect"></select>
+        <button id="playBtn" class="primary">⏵ Play</button>
+        <button id="stopBtn">⏹ Stop</button>
+        <label
+          class="small muted"
+          style="display: flex; align-items: center; gap: 8px"
+        >
+          Volume
+          <input
+            id="vol"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.9"
+          />
+        </label>
+      </div>
+      <div id="meta">
+        <div id="nowPlaying">—</div>
+        <canvas id="vu" width="48" height="48"></canvas>
+      </div>
+    </div>
+    <div style="margin-top: 8px">
+      <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+    </div>
+
+    <div class="panel" style="margin-top: 12px">
+      <div class="json-header">
+        <label>Track JSON (edit sequences, bpm, length, name)</label>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <button id="saveJson">💾 Save</button>
+          <button id="resetJson">↺ Reload</button>
+          <span id="saveResult" class="small muted"></span>
+        </div>
+      </div>
+      <textarea id="trackJson"></textarea>
+    </div>
+
+    <div class="panel" style="margin-top: 12px">
+      <label>Preview Note</label>
+      <div class="row">
+        <input id="noteInput" class="note-preview" value="C4" />
+        <button id="noteBtn">🎵 Play Note</button>
+        <label
+          class="small"
+          style="display: flex; align-items: center; gap: 8px"
+        >
+          Duration
+          <input
+            id="noteDur"
+            type="number"
+            min="0.05"
+            step="0.05"
+            value="0.6"
+            style="width: 70px"
+          />
+        </label>
+      </div>
+      <div style="margin-top: 12px">
+        <label class="small">Waveform Preview</label>
+        <canvas id="visual" height="120"></canvas>
+      </div>
+    </div>
+
+    <!-- Composer panel: create a new track with a simple step-sequencer -->
+    <div class="panel" style="margin-top: 12px">
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <label>Create Track (visual composer)</label>
+        <div style="display: flex; gap: 8px">
+          <button id="previewPattern">🔎 Preview</button>
+          <button id="createTrack" class="primary">➕ Create Track</button>
+        </div>
+      </div>
+      <div
+        style="
+          display: flex;
+          gap: 12px;
+          margin-top: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+        "
+      >
+        <input
+          id="newName"
+          placeholder="Track name (e.g. 'My Loop')"
+          style="padding: 8px; border-radius: 6px"
+        />
+        <input
+          id="newBpm"
+          type="number"
+          min="30"
+          max="300"
+          value="120"
+          style="width: 90px; padding: 6px; border-radius: 6px"
+        />
+        <input
+          id="newLength"
+          type="number"
+          min="1"
+          step="1"
+          value="8"
+          style="width: 90px; padding: 6px; border-radius: 6px"
+        />
+        <label
+          class="small muted"
+          style="display: flex; align-items: center; gap: 8px"
+        >
+          Note
+          <select id="notePicker">
+            <option value="—">—</option>
+            <!-- a compact set; the composer will allow selecting a note to paint on steps -->
+            <option>C2</option>
+            <option>D2</option>
+            <option>E2</option>
+            <option>F2</option>
+            <option>G2</option>
+            <option>A2</option>
+            <option>B2</option>
+            <option>C3</option>
+            <option>D3</option>
+            <option>E3</option>
+            <option>F3</option>
+            <option>G3</option>
+            <option>A3</option>
+            <option>B3</option>
+            <option>C4</option>
+            <option>D4</option>
+            <option>E4</option>
+            <option>F4</option>
+            <option>G4</option>
+            <option>A4</option>
+            <option>B4</option>
+          </select>
+        </label>
+      </div>
+
+      <div style="margin-top: 12px">
+        <div style="font-weight: 600; margin-bottom: 6px">Bass (8 steps)</div>
+        <div id="bassGrid" style="display: flex; gap: 6px"></div>
+      </div>
+      <div style="margin-top: 12px">
+        <div style="font-weight: 600; margin-bottom: 6px">Lead (16 steps)</div>
+        <div
+          id="leadGrid"
+          style="display: flex; gap: 6px; flex-wrap: wrap"
+        ></div>
+      </div>
+      <div style="margin-top: 10px">
+        <button id="clearComposer">Clear</button>
+      </div>
+    </div>
+
+    <script type="module">
+      import { Chiptune } from "./dist/music/chiptune.js"
+
+      const chip = new Chiptune()
+      const initBtn = document.getElementById("initBtn")
+      const trackSelect = document.getElementById("trackSelect")
+      const playBtn = document.getElementById("playBtn")
+      const stopBtn = document.getElementById("stopBtn")
+      const vol = document.getElementById("vol")
+      const trackJson = document.getElementById("trackJson")
+      const saveJson = document.getElementById("saveJson")
+      const resetJson = document.getElementById("resetJson")
+      const saveResult = document.getElementById("saveResult")
+      const noteBtn = document.getElementById("noteBtn")
+      const noteInput = document.getElementById("noteInput")
+      const noteDur = document.getElementById("noteDur")
+      const visual = document.getElementById("visual")
+      const vu = document.getElementById("vu")
+      const progressBar = document.getElementById("progressBar")
+      const nowPlaying = document.getElementById("nowPlaying")
+
+      // composer state
+      const stepsBass = new Array(8).fill("—")
+      const stepsLead = new Array(16).fill("—")
+      const bassGrid = document.getElementById("bassGrid")
+      const leadGrid = document.getElementById("leadGrid")
+      const notePicker = document.getElementById("notePicker")
+      const newName = document.getElementById("newName")
+      const newBpm = document.getElementById("newBpm")
+      const newLength = document.getElementById("newLength")
+      const createTrackBtn = document.getElementById("createTrack")
+      const previewPatternBtn = document.getElementById("previewPattern")
+      const clearComposerBtn = document.getElementById("clearComposer")
+
+      let playingKey = null
+      let raf = null
+      let visCtx = visual.getContext("2d")
+      let vuCtx = vu.getContext("2d")
+      let playStart = 0
+      let playLength = 1
+
+      async function initAudio() {
+        try {
+          await chip.initOnGesture()
+          initBtn.textContent = "Audio Ready"
+          initBtn.disabled = true
+          // start the visual render loop
+          startVisualLoop()
+        } catch (e) {
+          console.error(e)
+        }
+      }
+
+      function refreshTrackList() {
+        const tracks = chip.getTracks()
+        trackSelect.innerHTML = ""
+        for (const t of tracks) {
+          const opt = document.createElement("option")
+          opt.value = t.key
+          opt.textContent = `${t.key} — ${t.name} (${t.length}s @ ${t.bpm})`
+          trackSelect.appendChild(opt)
+        }
+        if (tracks.length) {
+          trackSelect.value = tracks[0].key
+          loadSelectedTrack()
+        }
+      }
+
+      function loadSelectedTrack() {
+        const k = trackSelect.value
+        try {
+          const data = chip.getTrackData(k)
+          trackJson.value = JSON.stringify(data, null, 2)
+        } catch (e) {
+          trackJson.value = "// error loading track: " + e.message
+        }
+      }
+
+      async function playSelected() {
+        const k = trackSelect.value
+        try {
+          // ensure audio created from gesture
+          await chip.initOnGesture()
+          await chip.playTrack(k)
+          playingKey = k
+          playBtn.disabled = true
+          stopBtn.disabled = false
+          const name = await chip.playTrack(k)
+          playingKey = k
+          playBtn.disabled = true
+          stopBtn.disabled = false
+          nowPlaying.textContent = name
+          // progress visuals (approximate client-side timer)
+          playStart = performance.now()
+          const data = chip.getTrackData(k)
+          playLength = (data && data.length) || 8
+        } catch (e) {
+          alert("Play failed: " + (e && e.message ? e.message : e))
+        }
+      }
+
+      function stopPlaying() {
+        chip.stop()
+        playingKey = null
+        playBtn.disabled = false
+        stopBtn.disabled = true
+        nowPlaying.textContent = "—"
+        progressBar.style.width = "0%"
+      }
+
+      function saveEdits() {
+        const k = trackSelect.value
+        try {
+          const parsed = JSON.parse(trackJson.value)
+          chip.updateTrackData(k, parsed)
+          saveResult.textContent = "Saved!"
+          setTimeout(() => (saveResult.textContent = ""), 1500)
+          refreshTrackList()
+        } catch (e) {
+          saveResult.textContent = "JSON error: " + e.message
+        }
+      }
+
+      function reloadFromSaved() {
+        try {
+          chip.loadEditedTracks()
+          loadSelectedTrack()
+          saveResult.textContent = "Reloaded saved edits"
+          setTimeout(() => (saveResult.textContent = ""), 1200)
+        } catch (e) {
+          saveResult.textContent = "Error: " + e.message
+        }
+      }
+
+      async function previewNote() {
+        const note = noteInput.value.trim()
+        const dur = parseFloat(noteDur.value) || 0.6
+        try {
+          await chip.initOnGesture()
+          await chip.playNote(note, { duration: dur })
+          await chip.playNote(note, { duration: dur })
+        } catch (e) {
+          console.error("preview failed", e)
+        }
+      }
+
+      function drawVU(level) {
+        const w = vu.width,
+          h = vu.height
+        vuCtx.clearRect(0, 0, w, h)
+        // background ring
+        vuCtx.fillStyle = "rgba(255,255,255,0.02)"
+        vuCtx.fillRect(0, 0, w, h)
+        // level bar
+        const pad = 6
+        const hInner = h - pad * 2
+        const levelH = Math.max(2, Math.min(1, level)) * hInner
+        const grad = vuCtx.createLinearGradient(0, 0, 0, h)
+        grad.addColorStop(0, "#6ee7b7")
+        grad.addColorStop(1, "#10b981")
+        vuCtx.fillStyle = grad
+        vuCtx.fillRect(pad, pad + (hInner - levelH), w - pad * 2, levelH)
+      }
+
+      function startVisualLoop() {
+        const analyser = chip.getAnalyser()
+        const bufferLength = analyser ? analyser.fftSize : 2048
+        const dataArray = new Uint8Array(bufferLength)
+
+        const render = () => {
+          raf = requestAnimationFrame(render)
+          // progress
+          if (playingKey) {
+            const elapsed = (performance.now() - playStart) / 1000
+            const pct = ((elapsed / playLength) % 1) * 100
+            progressBar.style.width = pct + "%"
+          }
+
+          if (!analyser) return
+          analyser.getByteTimeDomainData(dataArray)
+          // draw waveform
+          const cw = (visual.width = visual.clientWidth)
+          const ch = visual.height
+          visCtx.clearRect(0, 0, cw, ch)
+          visCtx.lineWidth = 2
+          visCtx.strokeStyle = "#6ee7b7"
+          visCtx.beginPath()
+          const slice = cw / bufferLength
+          for (let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0
+            const y = (v * ch) / 2
+            if (i === 0) visCtx.moveTo(0, y)
+            else visCtx.lineTo(i * slice, y)
+          }
+          visCtx.stroke()
+
+          // compute a simple RMS for VU meter
+          let sum = 0
+          for (let i = 0; i < bufferLength; i++) {
+            const d = (dataArray[i] - 128) / 128
+            sum += d * d
+          }
+          const rms = Math.sqrt(sum / bufferLength)
+          drawVU(rms * 1.6)
+        }
+        render()
+      }
+
+      // ensure we stop RAF when page unloads
+      window.addEventListener("beforeunload", () => {
+        if (raf) cancelAnimationFrame(raf)
+      })
+
+      // wire UI
+      initBtn.addEventListener("click", initAudio)
+      trackSelect.addEventListener("change", loadSelectedTrack)
+      playBtn.addEventListener("click", playSelected)
+      stopBtn.addEventListener("click", stopPlaying)
+      saveJson.addEventListener("click", saveEdits)
+      resetJson.addEventListener("click", reloadFromSaved)
+      vol.addEventListener("input", (ev) => {
+        const v = parseFloat(ev.target.value)
+        chip.setMasterVolume(v)
+      })
+      noteBtn.addEventListener("click", previewNote)
+
+      function renderGrid(container, steps, isLead = false) {
+        container.innerHTML = ""
+        steps.forEach((note, i) => {
+          const b = document.createElement("button")
+          b.textContent = note === "—" ? (isLead ? i + 1 : i + 1) : note
+          b.style.minWidth = isLead ? "44px" : "52px"
+          b.style.padding = "8px"
+          b.style.borderRadius = "6px"
+          b.style.opacity = note === "—" ? "0.45" : "1"
+          b.addEventListener("click", () => {
+            const sel = notePicker.value
+            if (sel === "—") {
+              steps[i] = "—"
+            } else {
+              // toggle: if same note, clear; otherwise set
+              steps[i] = steps[i] === sel ? "—" : sel
+            }
+            renderGrid(container, steps, isLead)
+          })
+          container.appendChild(b)
+        })
+      }
+
+      renderGrid(bassGrid, stepsBass, false)
+      renderGrid(leadGrid, stepsLead, true)
+
+      clearComposerBtn.addEventListener("click", () => {
+        for (let i = 0; i < stepsBass.length; i++) stepsBass[i] = "—"
+        for (let i = 0; i < stepsLead.length; i++) stepsLead[i] = "—"
+        renderGrid(bassGrid, stepsBass, false)
+        renderGrid(leadGrid, stepsLead, true)
+      })
+
+      function buildComposerData() {
+        const bassSeq = stepsBass.map((n) =>
+          n === "—" ? { n: 0, len: 0 } : { n, len: 0.5 }
+        )
+        // for lead use shorter steps
+        const leadSeq = stepsLead.map((n) =>
+          n === "—" ? { n: 0, len: 0 } : { n, len: 0.25 }
+        )
+        // strip rests (our scheduler will ignore 0-length entries)
+        const clean = (arr) => arr.filter((s) => s.len && s.n)
+        return {
+          name: newName.value || "New Track",
+          bpm: parseInt(newBpm.value, 10) || 120,
+          length: parseInt(newLength.value, 10) || 8,
+          bassSeq: clean(bassSeq),
+          leadSeq: clean(leadSeq),
+        }
+      }
+
+      createTrackBtn.addEventListener("click", () => {
+        try {
+          const data = buildComposerData()
+          const keyBase = (data.name || "track")
+            .replace(/\s+/g, "-")
+            .toLowerCase()
+          // ensure unique key
+          let key = keyBase
+          let idx = 1
+          while (chip.getTracks().some((t) => t.key === key)) {
+            key = `${keyBase}-${idx++}`
+          }
+          chip.addTrack(key, data)
+          chip.updateTrackData(key, data) // persist
+          refreshTrackList()
+          trackSelect.value = key
+          loadSelectedTrack()
+        } catch (e) {
+          alert("Could not create track: " + e.message)
+        }
+      })
+
+      previewPatternBtn.addEventListener("click", async () => {
+        try {
+          await chip.initOnGesture()
+          const data = buildComposerData()
+          // register temporary key (overwrites if same exists)
+          const key = "_preview_temp"
+          chip.addTrack(key, data)
+          chip.scheduleOnce(key)
+        } catch (e) {
+          console.error("preview failed", e)
+        }
+      })
+
+      // initial population
+      refreshTrackList()
+      stopBtn.disabled = true
+    </script>
+  </body>
+</html>

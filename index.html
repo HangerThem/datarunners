@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CYBERPUNK OREGON TRAIL // TERMINAL INTERFACE v2.1</title>
+    <title>DATARUNNERS // TERMINAL INTERFACE v2.1</title>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap");
 
@@ -148,6 +148,36 @@
         overflow-wrap: break-word;
       }
 
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 16px;
+      }
+
+      .data-table thead {
+        color: #003300;
+        background: #00ff00;
+        font-weight: 700;
+        box-shadow: 0 0 10px #00ff00;
+      }
+
+      .data-table th,
+      .data-table td {
+        padding: 8px;
+        text-align: left;
+      }
+
+      .data-table tbody tr:nth-child(odd) {
+        background: #001100;
+      }
+
+      .logo {
+        color: #00ff00;
+        font-weight: 700;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 16px;
+      }
+
       .typing-text {
         overflow: hidden;
         white-space: nowrap;
@@ -239,7 +269,13 @@
         transition: all 0.2s ease;
       }
 
-      .menu-option:hover {
+      .disabled-text {
+        filter: grayscale(100%);
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      .menu-option:not(.disabled-text):hover {
         background: #001a00;
         border-left-color: #00ffff;
         text-shadow: 0 0 8px #00ffff;
@@ -317,9 +353,7 @@
     <div class="crt-effect"></div>
 
     <div class="terminal-container">
-      <div class="terminal-header">
-        CYBERPUNK OREGON TRAIL // DATA HAVEN EXPRESS // TERMINAL v2.1
-      </div>
+      <div class="terminal-header">DATARUNNERS // TERMINAL INTERFACE v2.1</div>
 
       <div class="terminal-main">
         <div class="game-display" id="gameDisplay">
@@ -327,7 +361,7 @@
           <div id="gameText"></div>
         </div>
 
-        <div class="status-panel" id="statusPanel">
+        <div class="status-panel" style="display: none" id="statusPanel">
           <div class="status-section">
             <div class="status-title">RESOURCES</div>
             <div class="resource-item">
@@ -395,11 +429,13 @@
           class="command-input"
           placeholder="Enter command (HELP for options)..."
           autocomplete="off"
+          spellcheck="false"
+          disabled
         />
       </div>
     </div>
 
-    <script src="dist/terminal.js"></script>
-    <script src="dist/game.js"></script>
+    <script type="module" src="dist/terminal.js"></script>
+    <script type="module" src="dist/game.js"></script>
   </body>
 </html>

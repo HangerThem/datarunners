@@ -1,98 +1,71 @@
-interface Resources {
-  credits: number
-  dataChips: number
-  energyCells: number
-}
+import { TeamMember, TeamMemberStatus } from "./teamMember.js"
+import { Inventory, InventoryEntry } from "./inventory/inventory.js"
+import { createItem, ItemName } from "./items/itemFactory.js"
+import { ResourceKey, Resources } from "./inventory/resources.js"
+import { Event, EventChoice } from "./event/event.js"
+import { Chiptune } from "./music/chiptune.js"
 
-interface TeamMember {
-  name: string
-  role: string
-  health: number
-  status: string
-  skill: string
-}
-
-interface InventoryItem {
-  name: string
-  type: string
-  amount: number
-  description: string
-  use?: (game: CyberpunkOregonTrail) => void
-}
-
-interface Inventory {
-  [key: string]: InventoryItem
-}
-
-interface GameState {
+export interface GameState {
   resources: Resources
   teamMembers: TeamMember[]
   distanceTraveled: number
   totalDistance: number
   currentLocation: string
   destination: string
-  gameDate: string
+  gameDate: Date
   dayCounter: number
   weather: string
   gameActive: boolean
   currentEvent: any
   awaitingChoice: boolean
-  choiceOptions: any[]
+  choiceOptions: EventChoice[]
   inventory: Inventory
 }
 
-interface ChoiceOption {
-  text: string
-  outcome: string
-  risk?: number
-  cost?: { [key: string]: number }
-  reward?: { [key: string]: number | boolean }
-  itemRef?: InventoryItem
-}
-
-class CyberpunkOregonTrail {
+export class Game {
   gameState: GameState
+  chiptune: Chiptune
   locations: { name: string; distance: number; description: string }[]
-  events: any[]
+  events: Event[]
   weatherConditions: string[]
 
   constructor() {
     this.gameState = {
-      resources: {
-        credits: 1000,
-        dataChips: 50,
-        energyCells: 25,
-      },
+      resources: new Resources(1000, 50, 25),
 
       teamMembers: [
-        {
-          name: "ZERO",
-          role: "Netrunner",
-          health: 100,
-          status: "Healthy",
-          skill: "Hacking",
-        },
-        {
-          name: "SPARK",
-          role: "Techie",
-          health: 100,
-          status: "Healthy",
-          skill: "Engineering",
-        },
-        {
-          name: "GHOST",
-          role: "Runner",
-          health: 100,
-          status: "Healthy",
-          skill: "Stealth",
-        },
-        {
-          name: "DOC",
-          role: "Medtech",
-          health: 100,
-          status: "Healthy",
-          skill: "Medical",
-        },
+        new TeamMember(
+          "ZERO",
+          "Netrunner",
+          {
+            Combat: 4,
+          },
+          this
+        ),
+        new TeamMember(
+          "SPARK",
+          "Techie",
+          {
+            Engineering: 4,
+          },
+          this
+        ),
+        new TeamMember(
+          "GHOST",
+          "Runner",
+          {
+            Stealth: 4,
+          },
+          this
+        ),
+        new TeamMember(
+          "DOC",
+          "Medtech",
+          {
+            Medical: 4,
+          },
+          this
+        ),
       ],
 
       distanceTraveled: 0,
@@ -100,37 +73,16 @@ class CyberpunkOregonTrail {
       currentLocation: "Seattle Ruins",
       destination: "Neo-Tokyo Data Haven",
 
-      gameDate: "2077.03.15",
+      gameDate: new Date(2077, 2, 20),
       dayCounter: 0,
-      weather: "Corporate Overcast",
+      weather: "Clear Skies",
 
       gameActive: true,
       currentEvent: null,
       awaitingChoice: false,
       choiceOptions: [],
 
-      inventory: {
-        medkit: {
-          name: "Medkit",
-          type: "consumable",
-          amount: 3,
-          description: "Heals 30 HP to one team member.",
-          use: (game: CyberpunkOregonTrail) => game.healMember(30),
-        },
-        energyPack: {
-          name: "Energy Pack",
-          type: "consumable",
-          amount: 2,
-          description: "Restores 20 energy cells.",
-          use: (game: CyberpunkOregonTrail) => game.restoreEnergy(20),
-        },
-        jammer: {
-          name: "Signal Jammer",
-          type: "equipment",
-          amount: 2,
-          description: "Used to avoid detection in certain encounters.",
-        },
-      },
+      inventory: new Inventory(this),
     }
 
     this.locations = [
@@ -192,138 +144,97 @@ class CyberpunkOregonTrail {
     ]
 
     this.events = [
-      {
-        type: "encounter",
-        title: "Corporate Patrol",
-        description:
-          "A corporate security drone spots your team. Its sensors sweep the area, looking for unauthorized data traffickers.",
-        choices: [
+      new Event(
+        "Corporate Patrol",
+        "A corporate security drone spots your team. Its sensors sweep the area, looking for unauthorized data traffickers.",
+        [
           {
             text: "Attempt to hack the drone",
             outcome: "hack",
-            risk: 0.7,
-            reward: { dataChips: 20, energy: -5 },
+            risk: 0,
+            cost: { items: { HackerTool: 1 }, resources: { credits: 50 } },
+            reward: () => {
+              this.gameState.resources.earn({ data: 20 })
+              this.addText(
+                "You successfully hack the drone and extract valuable data chips.",
+                "gameText",
+                "success-text"
+              )
+            },
           },
           {
             text: "Use jammers to create interference",
             outcome: "jam",
             risk: 0.3,
-            cost: { jammers: 1 },
-            reward: { safety: true },
+            cost: { items: { Jammer: 1 } },
           },
           {
             text: "Hide and wait for it to pass",
             outcome: "hide",
             risk: 0.2,
-            reward: { time: 1 },
+            reward: () => {
+              this.gameState.dayCounter += 1
+              this.gameState.gameDate.setDate(
+                this.gameState.gameDate.getDate() + 1
+              )
+            },
           },
         ],
-      },
-      {
-        type: "discovery",
-        title: "Abandoned Server Farm",
-        description:
-          "You discover a partially collapsed data center. Ancient servers hum with residual power, possibly containing valuable pre-war data.",
-        choices: [
-          {
-            text: "Search for salvageable data chips",
-            outcome: "search",
-            risk: 0.4,
-            reward: { dataChips: 30, energy: -10 },
-          },
-          {
-            text: "Strip equipment for energy cells",
-            outcome: "strip",
-            risk: 0.2,
-            reward: { energyCells: 15, time: 1 },
-          },
-          {
-            text: "Avoid the unstable structure",
-            outcome: "avoid",
-            risk: 0.0,
-            reward: {},
-          },
-        ],
-      },
-      {
-        type: "trade",
-        title: "Wandering Merchant",
-        description:
-          "A nomadic trader approaches your camp, offering cyberware and supplies. Their prices seem reasonable, but can you trust them?",
-        choices: [
+        this
+      ),
+      new Event(
+        "Wandering Merchant",
+        "A nomadic trader approaches your camp, offering cyberware and supplies. Their prices seem reasonable, but can you trust them?",
+        [
           {
             text: "Buy medical supplies (100 credits)",
-            outcome: "buy_med",
-            cost: { credits: 100 },
-            reward: { medkit: 2 },
+            outcome: "buy",
+            cost: { resources: { credits: 100 } },
+            reward: () => {
+              this.gameState.inventory.addItem(
+                createItem("Medkit", this.gameState),
+                2
+              )
+              this.addText(
+                "You purchase 2 Medkits.",
+                "gameText",
+                "success-text"
+              )
+            },
           },
           {
             text: "Purchase energy cells (50 credits each)",
-            outcome: "buy_energy",
-            cost: { credits: 50 },
-            reward: { energyCells: 5 },
+            outcome: "buy",
+            cost: { resources: { credits: 50 } },
+            reward: () => {
+              this.gameState.inventory.addItem(
+                createItem("SmallEnergyCell", this.gameState),
+                5
+              )
+              this.addText(
+                "You purchase 5 Small Energy Cells.",
+                "gameText",
+                "success-text"
+              )
+            },
           },
           {
             text: "Sell excess data chips (20 credits each)",
-            outcome: "sell_data",
-            cost: { dataChips: 10 },
-            reward: { credits: 200 },
+            outcome: "buy",
+            cost: { resources: { data: 10 } },
+            reward: () => {
+              this.gameState.resources.earn({ credits: 200 })
+              this.addText(
+                "You sell 10 data chips for 200 credits.",
+                "gameText",
+                "success-text"
+              )
+            },
           },
-          { text: "Decline trading", outcome: "decline", reward: {} },
+          { text: "Decline trading", outcome: "cancel" },
         ],
-      },
-      {
-        type: "hazard",
-        title: "Electromagnetic Storm",
-        description:
-          "Warning sirens blare as an EM storm approaches. Your cyberware crackles with static electricity. All electronic equipment is at risk.",
-        choices: [
-          {
-            text: "Shut down all systems and wait",
-            outcome: "shutdown",
-            risk: 0.1,
-            reward: { time: 2, energy: -5 },
-          },
-          {
-            text: "Attempt to shield equipment",
-            outcome: "shield",
-            risk: 0.5,
-            reward: { energy: -15 },
-          },
-          {
-            text: "Push through the storm",
-            outcome: "push",
-            risk: 0.8,
-            reward: { distance: 50, damage: 100 },
-          },
-        ],
-      },
-      {
-        type: "story",
-        title: "Digital Ghost",
-        description:
-          "A fragmented AI consciousness contacts your team through the net. It claims to have vital information about safe routes ahead.",
-        choices: [
-          {
-            text: "Trust the AI and accept its data",
-            outcome: "trust_ai",
-            risk: 0.6,
-            reward: { dataChips: 15, distance: 30 },
-          },
-          {
-            text: "Negotiate for better information",
-            outcome: "negotiate",
-            risk: 0.4,
-            reward: { dataChips: 25 },
-          },
-          {
-            text: "Refuse contact - AI can't be trusted",
-            outcome: "refuse",
-            risk: 0.0,
-            reward: { safety: true },
-          },
-        ],
-      },
+        this
+      ),
     ]
 
     this.weatherConditions = [
@@ -338,34 +249,91 @@ class CyberpunkOregonTrail {
       "Solar Flare",
     ]
 
+    this.chiptune = new Chiptune()
+
     this.init()
   }
 
-  init() {
-    this.displayIntro()
-    this.updateStatusDisplay()
-    this.setupCommandInput()
+  async init() {
+    await this.bootSequence()
+    this.mainMenu()
   }
 
-  displayIntro() {
-    const introText = [
-      "SYSTEM BOOT SEQUENCE INITIATED...",
-      "CYBERPUNK OREGON TRAIL v2.1",
+  async bootSequence() {
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    const logo = await fetch("/data/logo.txt").then((res) => res.text())
+    this.addText(logo, "gameText", "logo")
+
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    this.addText("BOOTING TERMINAL INTERFACE v2.1...", "gameText")
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    this.addText("INITIALIZING CYBERPUNK OREGON TRAIL...", "gameText")
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    const loadingSteps = [
+      "Loading resources...",
+      "Establishing secure connection...",
+      "Calibrating neural interfaces...",
+      "Syncing team data...",
+      "Finalizing setup...",
+    ]
+
+    for (const step of loadingSteps) {
+      this.addText(step, "gameText")
+      await new Promise((resolve) =>
+        setTimeout(resolve, 400 + Math.random() * 800)
+      )
+    }
+
+    this.addText("SYSTEM READY.", "gameText", "success-text")
+  }
+
+  mainMenu() {
+    this.addText("", "gameText")
+    this.addText("=== MAIN MENU ===", "gameText", "menu-header")
+    this.addText("1. Start New Game", "gameText", "menu-option")
+    this.addText("2. Load Game", "gameText", "menu-option")
+    this.addText("3. Help", "gameText", "menu-option")
+    this.addText("4. Exit", "gameText", "menu-option")
+    this.addText("", "gameText")
+    this.addText("Enter choice (1-4):", "gameText")
+
+    this.gameState.awaitingChoice = true
+    this.gameState.choiceOptions = [
+      { text: "Start New Game", outcome: "new_game" },
+      { text: "Load Game", outcome: "load_menu" },
+      { text: "Help", outcome: "help" },
+      { text: "Exit", outcome: "exit" },
+    ]
+
+    this.setupCommandInput()
+    this.unlockInput()
+  }
+
+  async displayIntro() {
+    this.lockInput()
+
+    const introNarrative = [
+      "In the year 2077, data is the most valuable currency.",
+      "Mega-corporations rule the world, and information is power.",
+      "You are a team of elite data runners, hired to transport sensitive information across the dangerous wastelands between Seattle and Neo-Tokyo.",
       "",
-      "The year is 2077. The world has changed.",
-      "Corporations rule the wastelands between cities.",
-      "Data is the new gold. Hackers are the new pioneers.",
+      "Your mission: Deliver the encrypted data chip to the Neo-Tokyo Data Haven, a sanctuary for free information.",
       "",
-      "Your team must travel 2000 kilometers from the Seattle Ruins",
-      "to the Neo-Tokyo Data Haven - the last free network on Earth.",
+      "The journey will be perilous. Corporate patrols, rogue AIs, and environmental hazards stand between you and your goal.",
       "",
-      "Commands: TRAVEL, REST, STATUS, INVENTORY, HELP",
+      "Manage your resources, make tough decisions, and keep your team alive. The fate of the digital revolution depends on you.",
       "",
-      "Your journey begins now...",
+      "Type HELP for a list of commands.",
       "",
     ]
 
-    this.typeText(introText.join("\n"), "gameText")
+    // this.typeText(introNarrative.join("\n"), "gameText", "", this.unlockInput)
+    this.addText(introNarrative.join("\n"), "gameText", "")
+    this.unlockInput()
   }
 
   setupCommandInput() {
@@ -381,7 +349,20 @@ class CyberpunkOregonTrail {
     input.focus()
   }
 
+  unlockInput() {
+    const input = document.getElementById("commandInput") as HTMLInputElement
+    input.disabled = false
+    input.focus()
+  }
+
+  lockInput() {
+    const input = document.getElementById("commandInput") as HTMLInputElement
+    input.disabled = true
+  }
+
   processCommand(command: string) {
+    if (command.trim() === "") return
+
     if (this.gameState.awaitingChoice) {
       this.processChoice(command)
       return
@@ -400,17 +381,24 @@ class CyberpunkOregonTrail {
       case "STATUS":
         this.showStatus()
         break
+      case "TEAM":
+        this.displayTable(
+          ["Name", "Role", "Health", "Status", "Skills"],
+          this.gameState.teamMembers.map((m) => m.getInfo()),
+          "gameText"
+        )
+        break
       case "INVENTORY":
-        this.showInventory()
+        this.gameState.inventory.showInventory()
         break
       case "USE":
-        this.itemSelect()
+        this.gameState.inventory.itemSelect()
         break
       case "SAVE":
         this.saveGame()
         break
       case "LOAD":
-        this.loadGame()
+        this.loadMenu()
         break
       default:
         this.addText(`> ${command}`, "gameText")
@@ -442,7 +430,7 @@ class CyberpunkOregonTrail {
   }
 
   travel() {
-    if (this.gameState.resources.energyCells < 5) {
+    if (!this.gameState.resources.canAfford({ energy: 5 })) {
       this.addText(
         "Insufficient energy cells to travel safely.",
         "gameText",
@@ -455,8 +443,9 @@ class CyberpunkOregonTrail {
       return
     }
 
-    this.gameState.resources.energyCells -= 5
+    this.gameState.resources.pay({ energy: 5 })
     this.gameState.dayCounter += 1
+    this.gameState.gameDate.setDate(this.gameState.gameDate.getDate() + 1)
 
     const travelDistance = Math.floor(Math.random() * 100) + 50
     this.gameState.distanceTraveled = Math.min(
@@ -495,29 +484,30 @@ class CyberpunkOregonTrail {
 
   rest() {
     this.gameState.dayCounter += 1
+    this.gameState.gameDate.setDate(this.gameState.gameDate.getDate() + 1)
 
-    this.gameState.resources.energyCells = Math.min(
-      this.gameState.resources.energyCells + 3,
-      50
-    )
+    const energyCellsText =
+      this.gameState.resources.energy + 3 === 50
+        ? "Energy cells fully recharged."
+        : this.gameState.resources.energy + 3 > 50
+        ? "Energy cells are already at maximum capacity."
+        : "Energy cells recharged by 3."
 
-    let recoveryText = ["> REST", "Your team takes time to recover:"]
+    this.gameState.resources.earn({ energy: 3 })
+
+    let recoveryText = ["> REST", "", "Your team takes time to recover:"]
 
     this.gameState.teamMembers.forEach((member: TeamMember) => {
-      if (member.health < 100) {
-        const recovery = Math.min(
-          Math.floor(Math.random() * 20) + 10,
-          100 - member.health
-        )
-        member.health = Math.min(member.health + recovery, 100)
-        if (member.health === 100) {
-          member.status = "Healthy"
-        }
-        recoveryText.push(`${member.name} recovers ${recovery} health.`)
-      }
+      const res = member.rest()
+
+      res && recoveryText.push(res)
     })
 
-    recoveryText.push("Energy cells recharged: +3")
+    if (recoveryText.length === 3) {
+      recoveryText.push("All team members are already at full health.")
+    }
+
+    recoveryText.push("", energyCellsText)
 
     this.addText(recoveryText.join("\n"), "gameText")
 
@@ -530,96 +520,36 @@ class CyberpunkOregonTrail {
   }
 
   showStatus() {
-    const statusText = [
-      "=== TEAM STATUS ===",
-      "",
-      `Journey: ${this.gameState.distanceTraveled}/${this.gameState.totalDistance} km`,
-      `Location: ${this.gameState.currentLocation}`,
-      `Weather: ${this.gameState.weather}`,
-      `Day: ${this.gameState.dayCounter}`,
-      "",
-      "Team Members:",
-    ]
-
-    this.gameState.teamMembers.forEach((member) => {
-      statusText.push(
-        `${member.name} (${member.role}): ${member.health}% health - ${member.status}`
-      )
-    })
-
-    this.addText(statusText.join("\n"), "gameText")
-  }
-
-  showInventory() {
-    const items = Object.values(this.gameState.inventory)
-    const resourceLines = Object.entries(this.gameState.resources)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join("\n")
-
-    const itemLines = items
-      .map(
-        (item, i) =>
-          `${i + 1}. ${item.name} x${item.amount} — ${item.description}`
-      )
-      .join("\n")
-
-    const text = [
-      "=== INVENTORY ===",
-      resourceLines,
-      "",
-      "=== ITEMS ===",
-      itemLines.length ? itemLines : "No items.",
-    ]
-
-    this.addText(text.join("\n"), "gameText")
-  }
-
-  itemSelect() {
-    const usableItems = Object.values(this.gameState.inventory).filter(
-      (item) => item.amount > 0 && item.type === "consumable"
+    this.displayTable(
+      ["Resource", "Amount"],
+      Object.entries(this.gameState.resources).map(([key, value]) => [
+        key.charAt(0).toUpperCase() + key.slice(1),
+        value.toString(),
+      ]),
+      "gameText"
     )
-
-    if (usableItems.length === 0) {
-      this.addText("No usable items in inventory.", "gameText", "error-text")
-      return
-    }
-
-    this.addText("Select an item to use:", "gameText")
-    usableItems.forEach((item, index) => {
-      this.addText(
-        `${index + 1}. ${item.name} (${item.amount}) - ${item.description}`,
-        "gameText",
-        "menu-option"
-      )
-    })
-
-    this.gameState.awaitingChoice = true
-    this.gameState.choiceOptions = usableItems.map((item) => ({
-      text: item.name,
-      outcome: "use_item",
-      itemRef: item,
-    }))
+    this.addText(
+      `Distance Traveled: ${this.gameState.distanceTraveled} / ${this.gameState.totalDistance} km`,
+      "gameText"
+    )
+    this.addText(
+      `Current Location: ${this.gameState.currentLocation}`,
+      "gameText"
+    )
+    this.addText(`Destination: ${this.gameState.destination}`, "gameText")
+    this.addText(
+      `Current Date: ${this.gameState.gameDate.toDateString()}`,
+      "gameText"
+    )
+    this.addText(`Day: ${this.gameState.dayCounter}`, "gameText")
+    this.addText(`Weather: ${this.gameState.weather}`, "gameText")
   }
 
   triggerRandomEvent() {
-    const event = this.events[Math.floor(Math.random() * this.events.length)]
-    this.gameState.currentEvent = event
-    this.gameState.awaitingChoice = true
-
-    this.addText(``, "gameText")
-    this.addText(`*** ${event.title} ***`, "gameText", "warning-text")
-    this.addText(event.description, "gameText")
-    this.addText("", "gameText")
-    this.addText("What do you do?", "gameText")
-
-    event.choices.forEach((choice: ChoiceOption, index: number) => {
-      this.addText(`${index + 1}. ${choice.text}`, "gameText", "menu-option")
-    })
-
-    this.gameState.choiceOptions = event.choices
+    this.events[Math.floor(Math.random() * this.events.length)].present()
   }
 
-  processChoice(choiceInput: string) {
+  async processChoice(choiceInput: string) {
     const choiceIndex = parseInt(choiceInput) - 1
     if (
       isNaN(choiceIndex) ||
@@ -631,181 +561,154 @@ class CyberpunkOregonTrail {
     }
 
     const choice = this.gameState.choiceOptions[choiceIndex]
-    this.gameState.awaitingChoice = false
 
-    if (choice.outcome === "use_item") {
-      this.useItem(choice.itemRef)
+    console.log("Processing choice:", choice)
+
+    if (choice.isPossible === false) {
+      this.addText(
+        "You don't have the required resources to perform that action.",
+        "gameText",
+        "error-text"
+      )
+      this.addText("", "gameText")
+      this.gameState.choiceOptions.forEach((c: EventChoice, idx: number) => {
+        if (!c.isPossible) {
+          this.addText(
+            `${idx + 1}. ${c.text} (Insufficient resources)`,
+            "gameText",
+            "menu-option disabled-text"
+          )
+        } else {
+          this.addText(`${idx + 1}. ${c.text}`, "gameText", "menu-option")
+        }
+      })
       return
     }
+
+    switch (choice.outcome) {
+      case "new_game":
+        await this.chiptune.initOnGesture()
+        this.chiptune.setMasterVolume(0.2)
+        this.chiptune.playTrack("travel")
+        document.getElementById("statusPanel")!.style.display = "block"
+        this.updateStatusDisplay()
+        this.clearText("gameText")
+        this.populateStartingInventory()
+        this.displayIntro()
+        this.gameState.awaitingChoice = false
+        return
+      case "load_menu":
+        this.loadMenu()
+        this.gameState.awaitingChoice = false
+        return
+      case "load_save":
+        this.loadGame(choice.itemRef)
+        this.gameState.awaitingChoice = false
+      case "help":
+        this.showHelp()
+        return
+      case "use_item":
+        this.gameState.inventory.useItem(choice.itemRef!)
+        this.gameState.awaitingChoice = false
+        return
+      case "cancel":
+        this.addText("Action cancelled.", "gameText")
+        this.updateStatusDisplay()
+        this.gameState.awaitingChoice = false
+        return
+      case "exit":
+        this.addText("Exiting game. Goodbye!", "gameText")
+        this.lockInput()
+        return
+    }
+
+    this.addText(`> ${choice.text}`, "gameText")
 
     this.gameState.choiceOptions = []
 
-    const success = Math.random() > choice.risk
-
-    if (success) {
-      this.addText("Success!", "gameText", "success-text")
-      this.applyRewards(choice.reward)
-    } else {
-      this.addText("Failed!", "gameText", "error-text")
-      this.applyPenalty(choice.risk || 0.5)
-    }
-
-    this.updateStatusDisplay()
-  }
-
-  useItem(item: InventoryItem) {
-    if (item.amount <= 0) {
-      this.addText(`No ${item.name}s left!`, "gameText", "error-text")
-      return
-    }
-
-    if (!item.use) {
-      this.addText(`${item.name} cannot be used directly.`, "gameText")
-      return
-    }
-
-    item.use(this)
-    item.amount -= 1
-    this.addText(`Used one ${item.name}.`, "gameText", "success-text")
-    this.updateStatusDisplay()
-  }
-
-  healMember(amount: number) {
-    const injuredMembers = this.gameState.teamMembers.filter(
-      (m) => m.health < 100
-    )
-    if (injuredMembers.length === 0) {
-      this.addText("All team members are already at full health.", "gameText")
-      return
-    }
-
-    const memberToHeal = injuredMembers.reduce((prev, curr) =>
-      prev.health < curr.health ? prev : curr
-    )
-    memberToHeal.health = Math.min(100, memberToHeal.health + amount)
-    memberToHeal.status = "Healthy"
-    this.addText(
-      `${memberToHeal.name} healed by ${amount} points.`,
-      "gameText",
-      "success-text"
-    )
-  }
-
-  restoreEnergy(amount: number) {
-    this.gameState.resources.energyCells = Math.min(
-      50,
-      this.gameState.resources.energyCells + amount
-    )
-    this.addText(
-      `Energy cells restored by ${amount}.`,
-      "gameText",
-      "success-text"
-    )
-  }
-
-  applyRewards(rewards: { [key: string]: number | boolean }) {
-    if (!rewards) return
-
-    Object.keys(rewards).forEach((key) => {
-      switch (key) {
-        case "credits":
-          if (typeof rewards[key] === "number") {
-            this.gameState.resources.credits += rewards[key] as number
-            this.addText(`+${rewards[key]} credits`, "gameText", "success-text")
-          }
-          break
-        case "dataChips":
-          if (typeof rewards[key] === "number") {
-            this.gameState.resources.dataChips += rewards[key]
-            this.addText(
-              `+${rewards[key]} data chips`,
-              "gameText",
-              "success-text"
-            )
-          }
-          break
-        case "energyCells":
-          if (typeof rewards[key] === "number") {
-            this.gameState.resources.energyCells += rewards[key]
-            this.addText(
-              `+${rewards[key]} energy cells`,
-              "gameText",
-              "success-text"
-            )
-          }
-          break
-        case "distance":
-          if (typeof rewards[key] === "number") {
-            this.gameState.distanceTraveled += rewards[key]
-            this.addText(
-              `Advanced ${rewards[key]} km`,
-              "gameText",
-              "success-text"
-            )
-          }
-          break
-        case "energy":
-          if (typeof rewards[key] === "number") {
-            this.gameState.resources.energyCells += rewards[key]
-
-            if (rewards[key] > 0) {
-              this.addText(
-                `+${rewards[key]} energy cells`,
-                "gameText",
-                "success-text"
-              )
-            } else {
-              this.addText(
-                `${rewards[key]} energy cells`,
-                "gameText",
-                "error-text"
-              )
-            }
-          }
-          break
+    if (choice.cost) {
+      if (choice.cost.items) {
+        Object.entries(choice.cost.items).forEach(([itemName, qty]) => {
+          this.gameState.inventory.removeItem(itemName as ItemName, qty!)
+          this.addText(`Used ${qty} x ${itemName}`, "gameText", "info-text")
+        })
       }
-    })
+      if (choice.cost.resources) {
+        Object.entries(choice.cost.resources).forEach(([resName, qty]) => {
+          this.gameState.resources.pay({ [resName]: qty! })
+          this.addText(`Spent ${qty} ${resName}`, "gameText", "info-text")
+        })
+      }
+    }
+
+    if (choice.risk) {
+      if (Math.random() > choice.risk) {
+        this.addText("Success!", "gameText", "success-text")
+        choice.reward && choice.reward()
+      } else {
+        this.addText("Failed!", "gameText", "error-text")
+        this.applyPenalty(choice.risk || 0.5)
+      }
+    } else {
+      choice.reward && choice.reward()
+    }
+
+    this.gameState.currentEvent = null
+    this.gameState.awaitingChoice = false
+
+    this.chiptune.playTrack("travel")
+
+    this.updateStatusDisplay()
+  }
+
+  populateStartingInventory() {
+    this.gameState.inventory.addItem(createItem("Bandage", this.gameState), 5)
+    this.gameState.inventory.addItem(
+      createItem("HackerTool", this.gameState),
+      1
+    )
+    this.gameState.inventory.addItem(
+      createItem("SmallEnergyCell", this.gameState),
+      2
+    )
+  }
+
+  restoreEnergy(amount: number): boolean {
+    if (this.gameState.resources.energy >= 50) {
+      this.addText("Energy cells are already at maximum capacity.", "gameText")
+      return false
+    } else if (this.gameState.resources.energy + amount > 50) {
+      this.addText("Energy cells fully recharged.", "gameText", "success-text")
+    } else {
+      this.addText(
+        `Restored ${amount} energy points.`,
+        "gameText",
+        "success-text"
+      )
+    }
+
+    this.gameState.resources.earn({ energy: amount })
+    this.updateStatusDisplay()
+    return true
   }
 
   applyPenalty(riskLevel: number) {
+    const damage = Math.floor(riskLevel * 30) + Math.floor(Math.random() * 20)
+
     const randomMember =
       this.gameState.teamMembers[
         Math.floor(Math.random() * this.gameState.teamMembers.length)
       ]
 
-    const damage = Math.floor(riskLevel * 30) + Math.floor(Math.random() * 20)
-    randomMember.health = Math.max(0, randomMember.health - damage)
+    randomMember.receiveDamage(damage)
+  }
 
-    this.addText(
-      `${randomMember.name} takes ${damage} damage!`,
-      "gameText",
-      "error-text"
+  checkGameOver() {
+    const allDeceased = this.gameState.teamMembers.every(
+      (member) => member.status === TeamMemberStatus.Deceased
     )
-
-    if (randomMember.health <= 0) {
-      randomMember.status = "Critical"
-      this.addText(
-        `${randomMember.name} is in critical condition!`,
-        "gameText",
-        "error-text"
-      )
-    } else if (randomMember.health < 50) {
-      randomMember.status = "Injured"
-    }
-
-    if (randomMember.health <= 0) {
-      this.addText(
-        `${randomMember.name} has died from their injuries...`,
-        "gameText",
-        "error-text"
-      )
-      this.gameState.teamMembers = this.gameState.teamMembers.filter(
-        (m) => m !== randomMember
-      )
-
-      if (this.gameState.teamMembers.length === 0) {
-        this.gameOver("All team members have perished. Your journey ends here.")
-      }
+    if (allDeceased) {
+      this.gameOver("All team members have perished. Your journey ends here.")
     }
   }
 
@@ -826,9 +729,8 @@ class CyberpunkOregonTrail {
     ) as HTMLElement
 
     creditsElement.textContent = this.gameState.resources.credits.toString()
-    dataChipsElement.textContent = this.gameState.resources.dataChips.toString()
-    energyCellsElement.textContent =
-      this.gameState.resources.energyCells.toString()
+    dataChipsElement.textContent = this.gameState.resources.data.toString()
+    energyCellsElement.textContent = this.gameState.resources.energy.toString()
 
     const teamContainer = document.getElementById("teamMembers") as HTMLElement
     teamContainer.innerHTML = ""
@@ -862,7 +764,12 @@ class CyberpunkOregonTrail {
       this.gameState.distanceTraveled.toString()
     totalDistanceElement.textContent = this.gameState.totalDistance.toString()
     currentLocationElement.textContent = this.gameState.currentLocation
-    gameDateElement.textContent = this.gameState.gameDate
+    gameDateElement.textContent =
+      this.gameState.gameDate.getDate().toString() +
+      "/" +
+      (this.gameState.gameDate.getMonth() + 1).toString() +
+      "/" +
+      this.gameState.gameDate.getFullYear().toString()
     weatherElement.textContent = this.gameState.weather
 
     const progressPercent =
@@ -890,7 +797,7 @@ class CyberpunkOregonTrail {
       `Days taken: ${this.gameState.dayCounter}`,
       `Team members surviving: ${this.gameState.teamMembers.length}`,
       `Credits remaining: ${this.gameState.resources.credits}`,
-      `Data chips collected: ${this.gameState.resources.dataChips}`,
+      `Data chips collected: ${this.gameState.resources.data}`,
       "",
       "You have won the game. The future is yours to shape.",
       "",
@@ -924,19 +831,85 @@ class CyberpunkOregonTrail {
   }
 
   saveGame() {
-    localStorage.setItem("cyberpunkOregonTrail", JSON.stringify(this.gameState))
+    const currentSaves = localStorage.getItem("cyberpunkOregonTrail")
+    localStorage.setItem(
+      "cyberpunkOregonTrail",
+      JSON.stringify([
+        ...(currentSaves ? JSON.parse(currentSaves) : []),
+        {
+          id: Date.now(),
+          timestamp: new Date().toISOString(),
+          gameState: this.gameState,
+        },
+      ])
+    )
     this.addText("Game saved successfully.", "gameText", "success-text")
   }
 
-  loadGame() {
-    const savedGame = localStorage.getItem("cyberpunkOregonTrail")
-    if (savedGame) {
-      this.gameState = JSON.parse(savedGame)
-      this.updateStatusDisplay()
-      this.addText("Game loaded successfully.", "gameText", "success-text")
+  loadMenu() {
+    const savedGames = localStorage.getItem("cyberpunkOregonTrail")
+    if (savedGames) {
+      const saves = JSON.parse(savedGames)
+      if (saves.length === 0) {
+        this.addText("No saved games available.", "gameText", "error-text")
+        return
+      }
+
+      this.addText("Select a save to load:", "gameText")
+      saves.forEach((save: any, index: number) => {
+        this.addText(
+          `${index + 1}. Save from ${new Date(
+            save.timestamp
+          ).toLocaleString()}`,
+          "gameText",
+          "menu-option"
+        )
+      })
+
+      this.gameState.awaitingChoice = true
+      this.gameState.choiceOptions = saves.map((save: any) => ({
+        text: `Load save from ${new Date(save.timestamp).toLocaleString()}`,
+        outcome: "load_save",
+        itemRef: save,
+      }))
     } else {
-      this.addText("No saved game found.", "gameText", "error-text")
+      this.addText("No saved games available.", "gameText", "error-text")
     }
+  }
+
+  loadGame(save: any) {
+    if (!save) {
+      this.addText("Invalid save selected.", "gameText", "error-text")
+      return
+    }
+
+    this.gameState = save.gameState
+    this.clearText("gameText")
+    this.addText(
+      `Loaded save from ${new Date(save.timestamp).toLocaleString()}`,
+      "gameText",
+      "success-text"
+    )
+    document.getElementById("statusPanel")!.style.display = "block"
+    this.updateStatusDisplay()
+  }
+
+  quickLoad() {
+    const savedGames = localStorage.getItem("cyberpunkOregonTrail")
+    if (savedGames) {
+      const saves = JSON.parse(savedGames)
+      if (saves.length > 0) {
+        const latestSave = saves[saves.length - 1]
+        this.gameState = latestSave.gameState
+        this.addText(
+          `Loaded latest save from ${latestSave.timestamp}`,
+          "gameText"
+        )
+        this.updateStatusDisplay()
+        return
+      }
+    }
+    this.addText("No saved games available.", "gameText", "error-text")
   }
 
   addText(text: string, elementId: string, className = "") {
@@ -954,7 +927,12 @@ class CyberpunkOregonTrail {
     }
   }
 
-  typeText(text: string, elementId: string, className = "") {
+  typeText(
+    text: string,
+    elementId: string,
+    className = "",
+    onComplete?: () => void
+  ) {
     const element = document.getElementById(elementId) as HTMLElement
     const textDiv = document.createElement("div")
     textDiv.className = `game-text ${className}`
@@ -971,10 +949,62 @@ class CyberpunkOregonTrail {
         clearInterval(typeInterval)
       }
     }, 30)
+
+    if (onComplete) {
+      setTimeout(onComplete, text.length * 30 + 500)
+    }
+  }
+
+  displayTable(headers: string[], rows: string[][], elementId: string) {
+    const element = document.getElementById(elementId) as HTMLElement
+    const table = document.createElement("table")
+    table.className = "data-table"
+
+    const thead = document.createElement("thead")
+    const headerRow = document.createElement("tr")
+    headers.forEach((header) => {
+      const th = document.createElement("th")
+      th.textContent = header
+      headerRow.appendChild(th)
+    })
+    thead.appendChild(headerRow)
+    table.appendChild(thead)
+
+    const tbody = document.createElement("tbody")
+    rows.forEach((row) => {
+      const tr = document.createElement("tr")
+      row.forEach((cell) => {
+        const td = document.createElement("td")
+        td.textContent = cell
+        tr.appendChild(td)
+      })
+      tbody.appendChild(tr)
+    })
+    table.appendChild(tbody)
+
+    element.appendChild(table)
+
+    const scrollContainer = element.parentElement || element
+    scrollContainer.scrollTop = scrollContainer.scrollHeight
+  }
+
+  clearText(elementId: string) {
+    const element = document.getElementById(elementId) as HTMLElement
+    element.innerHTML = ""
   }
 }
 
-let game
+let game: Game
+
 document.addEventListener("DOMContentLoaded", () => {
-  game = new CyberpunkOregonTrail()
+  if (!game) {
+    game = new Game()
+  }
 })
+
+export function getGameInstance(): Game {
+  if (!game) {
+    game = new Game()
+  }
+  return game
+}
