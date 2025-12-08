@@ -106,4 +106,17 @@ export class AssetsManager {
     }
     return undefined
   }
+
+  getAssetKeyById(id: number): string | undefined {
+    const keys = Array.from(this.assets.keys())
+    return id >= 0 && id < keys.length ? keys[id] : undefined
+  }
+
+  unloadAsset(name: string): void {
+    this.assets.delete(name)
+  }
+
+  unloadAll(): void {
+    this.assets.clear()
+  }
 }

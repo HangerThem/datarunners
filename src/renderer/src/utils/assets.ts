@@ -1,9 +1,5 @@
-interface ImportMetaWithEnv extends ImportMeta {
-  env: {
-    DEV: boolean
-  }
-}
+import { ExpandedImportMeta } from '../types/importMeta'
 
 export function asset(path: string): string {
-  return (import.meta as ImportMetaWithEnv).env.DEV ? `/${path}` : `game:///${path}`
+  return (import.meta as ExpandedImportMeta).env.DEV ? `/${path}` : `game:///${path}`
 }

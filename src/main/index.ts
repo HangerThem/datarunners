@@ -1,8 +1,18 @@
-import { app, shell, BrowserWindow, ipcMain, protocol } from 'electron'
+import { app, shell, BrowserWindow, protocol, ipcMain } from 'electron'
 import { join, resolve, extname, normalize } from 'path'
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+
+interface GameSettings {
+  graphics: {
+    resolution: {
+      width: number
+      height: number
+    }
+    fullscreen: boolean
+  }
+}
 
 const scheme = 'game'
 protocol.registerSchemesAsPrivileged([
@@ -13,9 +23,31 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 function createWindow(): void {
+  const userDataPath = app.getPath('userData')
+  const settingsPath = join(userDataPath, 'settings.json')
+
+  if (!existsSync(settingsPath)) {
+    const defaultSettings = {
+      graphics: {
+        resolution: {
+          width: 1280,
+          height: 720
+        },
+        fullscreen: false,
+        vSync: true
+      }
+    }
+    const data = JSON.stringify(defaultSettings, null, 2)
+    writeFileSync(settingsPath, data, 'utf-8')
+  }
+
+  const settingsData = readFileSync(settingsPath, 'utf-8')
+  const settings = JSON.parse(settingsData)
+
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    fullscreen: settings.graphics.fullscreen,
+    width: settings.graphics.resolution.width,
+    height: settings.graphics.resolution.height,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -100,7 +132,22 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  ipcMain.on('ping', () => console.log('pong'))
+  ipcMain.handle('settings:load', async () => {
+    const userDataPath = app.getPath('userData')
+    const settingsPath = join(userDataPath, 'settings.json')
+    if (existsSync(settingsPath)) {
+      const data = readFileSync(settingsPath, 'utf-8')
+      return JSON.parse(data)
+    }
+    return null
+  })
+
+  ipcMain.on('settings:save', (_event, settings: GameSettings) => {
+    const userDataPath = app.getPath('userData')
+    const settingsPath = join(userDataPath, 'settings.json')
+    const data = JSON.stringify(settings, null, 2)
+    writeFileSync(settingsPath, data, 'utf-8')
+  })
 
   createWindow()
 

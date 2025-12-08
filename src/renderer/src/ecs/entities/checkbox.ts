@@ -2,35 +2,30 @@ import { addEntity, addComponent } from 'bitecs'
 import { UIPosition } from '../components/uiPosition'
 import { UIRenderable } from '../components/uiRenderable'
 import { UICallback } from '../components/uiCallback'
-import { UIButton } from '../components/uiButton'
 import type { ExtendedWorld } from '../world'
 import { UITexture } from '../components/uiTexture'
-import { UIText } from '../components/uiText'
+import { UICheckbox } from '../components/uiCheckbox'
 
-export function createButtonEntity(
+export function createCheckboxEntity(
   world: ExtendedWorld,
-  textName: string,
+  textureName: string,
   x: number,
   y: number,
   scale: number,
-  textureName: string,
   textureSizeX: number,
   textureSizeY: number,
   textureOffsetX: number,
   textureOffsetY: number,
-  foregroundColor: number,
-  hoverForegroundColor: number,
-  pressedForegroundColor: number,
+  checked: boolean = false,
   callbackId: number
 ): number {
   const entity = addEntity(world)
 
-  addComponent(world, UIButton, entity)
+  addComponent(world, UICheckbox, entity)
   addComponent(world, UIRenderable, entity)
   addComponent(world, UIPosition, entity)
   addComponent(world, UICallback, entity)
   addComponent(world, UITexture, entity)
-  addComponent(world, UIText, entity)
 
   UIPosition.x[entity] = x
   UIPosition.y[entity] = y
@@ -38,7 +33,6 @@ export function createButtonEntity(
   UIRenderable.width[entity] = textureSizeX * scale
   UIRenderable.height[entity] = textureSizeY * scale
   UIRenderable.visible[entity] = 1
-  UIText.textId[entity] = world.assets.getAssetId(textName)!
 
   UICallback.onClick[entity] = callbackId
 
@@ -48,11 +42,9 @@ export function createButtonEntity(
   UITexture.textureOffsetX[entity] = textureOffsetX
   UITexture.textureOffsetY[entity] = textureOffsetY
 
-  UIButton.foreground[entity] = foregroundColor
-  UIButton.foregroundHover[entity] = hoverForegroundColor
-  UIButton.foregroundPressed[entity] = pressedForegroundColor
-  UIButton.hovered[entity] = 0
-  UIButton.pressed[entity] = 0
+  UICheckbox.hovered[entity] = 0
+  UICheckbox.pressed[entity] = 0
+  UICheckbox.checked[entity] = checked ? 1 : 0
 
   return entity
 }

@@ -5,7 +5,7 @@ import { createButtonEntity } from './button'
 import { createDialogEntity } from './dialog'
 
 export function registerEntities(world: ExtendedWorld): void {
-  const dialog = createDialogEntity(world, 'dialog_01', 50, 300, 400, 150)
+  const dialog = createDialogEntity(world, 'dialog_01', 1024, 256, 'dialog', 1024, 256, 0, 0)
 
   createButtonEntity(
     world,
@@ -13,7 +13,7 @@ export function registerEntities(world: ExtendedWorld): void {
     world.renderer.width / 2 - (512 * 0.75) / 2,
     256,
     0.75,
-    'button_atlas',
+    'button_normal_medium',
     512,
     160,
     0,
@@ -33,7 +33,7 @@ export function registerEntities(world: ExtendedWorld): void {
     world.renderer.width / 2 - (512 * 0.75) / 2,
     400,
     0.75,
-    'button_atlas',
+    'button_normal_medium',
     512,
     160,
     0,
@@ -43,6 +43,7 @@ export function registerEntities(world: ExtendedWorld): void {
     hexColor('#00FF00FF'),
     world.callbacks.registerCallback(() => {
       world.audio.playSound('click_sound')
+      world.scenes.loadScene('settings')
     })
   )
 
@@ -52,14 +53,14 @@ export function registerEntities(world: ExtendedWorld): void {
     world.renderer.width / 2 - (512 * 0.75) / 2,
     544,
     0.75,
-    'button_atlas',
+    'button_danger_medium',
     512,
     160,
     0,
     0,
     hexColor('#FFFFFFFF'),
-    hexColor('#FF0000FF'),
-    hexColor('#FF0000FF'),
+    hexColor('#FF3B5AFF'),
+    hexColor('#FF3B5AFF'),
     world.callbacks.registerCallback(() => {
       world.audio.playSound('click_sound')
       window.close()

@@ -1,6 +1,7 @@
 import { defineComponent, Types } from 'bitecs'
 
 export const UIRenderable = defineComponent({
-  visible: Types.ui8,
-  textId: Types.ui16
+  width: Types.f32,
+  height: Types.f32,
+  visible: Types.ui8
 })

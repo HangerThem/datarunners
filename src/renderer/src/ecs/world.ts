@@ -1,9 +1,9 @@
 import { createWorld, type IWorld } from 'bitecs'
-import { AssetsManager } from './assetsManager'
-import type { Item } from './item'
-import { CallbackManager } from './callbackManager'
+import { AssetsManager } from '../managers/assetsManager'
+import { CallbackManager } from '../managers/callbackManager'
+import { AudioManager } from '../managers/audioManager'
 import { CursorType } from '../types/cursor'
-import { AudioManager } from './audioManager'
+import { SceneManager } from '../managers/sceneManager'
 
 export interface InputResource {
   keysDown: Uint8Array
@@ -17,13 +17,6 @@ export interface MousePosition {
   y: number
 }
 
-export interface InventoryResource {
-  [entityId: number]: {
-    items: (Item | null)[]
-    activeSlot: number
-  }
-}
-
 export interface RendererResource {
   ctx: CanvasRenderingContext2D
   width: number
@@ -33,11 +26,11 @@ export interface RendererResource {
 export interface ExtendedWorld extends IWorld {
   input: InputResource
   mousePosition: MousePosition
-  inventory: InventoryResource
   renderer: RendererResource
   assets: AssetsManager
   audio: AudioManager
   callbacks: CallbackManager
+  scenes: SceneManager
   cursor: CursorType
 }
 
@@ -66,10 +59,10 @@ world.input = {
 }
 world.mousePosition = { x: 0, y: 0 }
 
-world.inventory = {}
 world.assets = new AssetsManager()
 world.audio = new AudioManager(world.assets)
 world.callbacks = new CallbackManager()
+world.scenes = new SceneManager()
 
 const canvas = document.createElement('canvas')
 canvas.width = window.innerWidth
@@ -84,14 +77,14 @@ world.renderer = {
 
 world.cursor = 'default'
 
-window.addEventListener('resize', () => {
+function resizeHandler(): void {
   canvas.width = window.innerWidth
   canvas.height = window.innerHeight
   world.renderer.width = canvas.width
   world.renderer.height = canvas.height
-})
+}
 
-window.addEventListener('keydown', (e) => {
+function keydownHandler(e: KeyboardEvent): void {
   e.preventDefault()
   e.stopPropagation()
   e.stopImmediatePropagation()
@@ -101,9 +94,9 @@ window.addEventListener('keydown', (e) => {
     world.input.keysDown[code] = 1
     world.input.keysPressed[code] = 1
   }
-})
+}
 
-window.addEventListener('keyup', (e) => {
+function keyupHandler(e: KeyboardEvent): void {
   e.preventDefault()
   e.stopPropagation()
   e.stopImmediatePropagation()
@@ -114,23 +107,20 @@ window.addEventListener('keyup', (e) => {
     world.input.keysReleased[code] = 1
     world.input.holdTimes[code] = 0
   }
-})
+}
 
-window.addEventListener('blur', () => {
+function blurHandler(): void {
   for (let i = 0; i < KEY_COUNT; i++) {
     world.input.keysDown[i] = 0
     world.input.keysReleased[i] = 1
     world.input.holdTimes[i] = 0
   }
-})
 
-// window.addEventListener("contextmenu", (e) => {
-//   e.preventDefault()
-//   e.stopPropagation()
-//   e.stopImmediatePropagation()
-// })
+  world.cursor = 'default'
+  world.mousePosition = { x: -1, y: -1 }
+}
 
-window.addEventListener('mousedown', (e) => {
+function mousedownHandler(e: MouseEvent): void {
   e.preventDefault()
   e.stopPropagation()
   e.stopImmediatePropagation()
@@ -146,9 +136,9 @@ window.addEventListener('mousedown', (e) => {
     world.input.keysDown[code] = 1
     world.input.keysPressed[code] = 1
   }
-})
+}
 
-window.addEventListener('mouseup', (e) => {
+function mouseupHandler(e: MouseEvent): void {
   e.preventDefault()
   e.stopPropagation()
   e.stopImmediatePropagation()
@@ -165,11 +155,19 @@ window.addEventListener('mouseup', (e) => {
     world.input.keysReleased[code] = 1
     world.input.holdTimes[code] = 0
   }
-})
+}
 
-window.addEventListener('mousemove', (e) => {
+function mousemoveHandler(e: MouseEvent): void {
   world.mousePosition = {
     x: e.clientX,
     y: e.clientY
   }
-})
+}
+
+window.addEventListener('resize', resizeHandler)
+window.addEventListener('keydown', keydownHandler)
+window.addEventListener('keyup', keyupHandler)
+window.addEventListener('blur', blurHandler)
+window.addEventListener('mousedown', mousedownHandler)
+window.addEventListener('mouseup', mouseupHandler)
+window.addEventListener('mousemove', mousemoveHandler)
