@@ -5,6 +5,7 @@ import { UICallback } from '../components/uiCallback'
 import type { ExtendedWorld } from '../world'
 import { UITexture } from '../components/uiTexture'
 import { UICheckbox } from '../components/uiCheckbox'
+import { UIText } from '../components/uiText'
 
 export function createCheckboxEntity(
   world: ExtendedWorld,
@@ -17,7 +18,8 @@ export function createCheckboxEntity(
   textureOffsetX: number,
   textureOffsetY: number,
   checked: boolean = false,
-  callbackId: number
+  callbackId: number,
+  textId: number
 ): number {
   const entity = addEntity(world)
 
@@ -45,6 +47,8 @@ export function createCheckboxEntity(
   UICheckbox.hovered[entity] = 0
   UICheckbox.pressed[entity] = 0
   UICheckbox.checked[entity] = checked ? 1 : 0
+
+  UIText.textId[entity] = textId
 
   return entity
 }

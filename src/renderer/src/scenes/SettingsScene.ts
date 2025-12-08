@@ -97,8 +97,8 @@ export class SettingsScene implements Scene {
     createCheckboxEntity(
       world,
       'checkbox_normal',
-      32,
-      32,
+      world.renderer.width / 2 - (512 * 0.75) / 2,
+      560,
       0.5,
       64,
       64,
@@ -108,7 +108,8 @@ export class SettingsScene implements Scene {
       world.callbacks.registerCallback(() => {
         world.audio.playSound('click_sound')
         this.settingsData!.graphics['fullscreen'] = !this.settingsData!.graphics['fullscreen']
-      })
+      }),
+      world.assets.addTextAsset('fullscreen_checkbox_text', 'Fullscreen')
     )
   }
 

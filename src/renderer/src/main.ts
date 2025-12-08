@@ -30,7 +30,7 @@ export async function initGameEngine(): Promise<void> {
 
   world.scenes.getCurrentScene()!.update(0)
 
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  await new Promise((resolve) => setTimeout(resolve, 2500))
 
   await world.scenes.loadScene('main_menu')
 

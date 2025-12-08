@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, protocol, ipcMain } from 'electron'
 import { join, resolve, extname, normalize } from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import appIcon from '../../resources/icons/png/256x256.png?asset'
 
 interface GameSettings {
   graphics: {
@@ -50,7 +50,7 @@ function createWindow(): void {
     height: settings.graphics.resolution.height,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon: appIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false

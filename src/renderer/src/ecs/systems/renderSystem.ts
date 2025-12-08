@@ -12,13 +12,15 @@ import { System } from './system'
 import { UIText } from '../components/uiText'
 import { UIPureText } from '../components/uiPureText'
 import { UICheckbox } from '../components/uiCheckbox'
+import { Image } from '../components/image'
 
 export class RenderSystem implements System {
   private ctx: CanvasRenderingContext2D
-  private textQuery = defineQuery([UIPosition, UIRenderable, UIPureText])
+  private textQuery = defineQuery([UIPosition, UIPureText])
   private buttonQuery = defineQuery([UIPosition, UIButton])
   private dialogQuery = defineQuery([UIPosition, Dialog])
   private checkboxQuery = defineQuery([UIPosition, UICheckbox])
+  private imageQuery = defineQuery([UIPosition, Image])
 
   constructor() {
     this.ctx = world.renderer.ctx
@@ -32,6 +34,7 @@ export class RenderSystem implements System {
     world = this.renderCheckbox(world)
     world = this.renderDialog(world)
     world = this.renderText(world)
+    world = this.renderImages(world)
     return world
   }
 
@@ -116,10 +119,10 @@ export class RenderSystem implements System {
 
       const yOffset =
         UITexture.textureOffsetY[entity] +
-        (UICheckbox.hovered[entity]
-          ? UITexture.textureSizeY[entity]
-          : UICheckbox.checked[entity]
-            ? UITexture.textureSizeY[entity] * 2
+        (UICheckbox.checked[entity]
+          ? UITexture.textureSizeY[entity] * 2
+          : UICheckbox.hovered[entity]
+            ? UITexture.textureSizeY[entity]
             : 0)
 
       ctx.save()
@@ -135,6 +138,17 @@ export class RenderSystem implements System {
         width,
         height
       )
+      ctx.fillStyle = 'white'
+      ctx.font = '24px chakra_petch'
+      ctx.textBaseline = 'middle'
+      ctx.textAlign = 'left'
+
+      const text = world.assets.getAssetById<string>(UIText.textId[entity]) || ''
+      const textHeight =
+        ctx.measureText(text).actualBoundingBoxDescent -
+        ctx.measureText(text).actualBoundingBoxAscent
+
+      ctx.fillText(text, width + 10, height / 2 - textHeight / 2, 300)
       ctx.restore()
     }
 
@@ -190,6 +204,35 @@ export class RenderSystem implements System {
       for (let i = 0; i < visibleLines.length; i++) {
         ctx.fillText(visibleLines[i], paddingX, paddingY + i * lineHeight, maxWidth)
       }
+
+      ctx.restore()
+    }
+    return world
+  }
+
+  private renderImages(world: ExtendedWorld): ExtendedWorld {
+    const ctx = this.ctx
+
+    for (const entity of this.imageQuery(world)) {
+      if (!UIRenderable.visible[entity]) continue
+
+      ctx.save()
+      ctx.translate(UIPosition.x[entity], UIPosition.y[entity])
+
+      const width = UIRenderable.width[entity]
+      const height = UIRenderable.height[entity]
+
+      ctx.drawImage(
+        world.assets.getAssetById<HTMLImageElement>(UITexture.textureId[entity])!,
+        UITexture.textureOffsetX[entity],
+        UITexture.textureOffsetY[entity],
+        UITexture.textureSizeX[entity],
+        UITexture.textureSizeY[entity],
+        0,
+        0,
+        width,
+        height
+      )
 
       ctx.restore()
     }
