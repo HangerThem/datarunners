@@ -1,4 +1,4 @@
-import { defineQuery } from 'bitecs'
+import { defineQuery, hasComponent } from 'bitecs'
 import { UIPosition } from '../components/uiPosition'
 import { world, type ExtendedWorld } from '../world'
 import { Dialog, DialogText } from '../components/dialog'
@@ -13,6 +13,10 @@ import { UIText } from '../components/uiText'
 import { UIPureText } from '../components/uiPureText'
 import { UICheckbox } from '../components/uiCheckbox'
 import { Image } from '../components/image'
+import { getString } from '../../utils/stringAllocator'
+import { UIColor } from '../components/uiColor'
+import { UISelectable } from '../components/uiSelectable'
+import { TextInput } from '../components/textInput'
 
 export class RenderSystem implements System {
   private ctx: CanvasRenderingContext2D
@@ -21,6 +25,7 @@ export class RenderSystem implements System {
   private dialogQuery = defineQuery([UIPosition, Dialog])
   private checkboxQuery = defineQuery([UIPosition, UICheckbox])
   private imageQuery = defineQuery([UIPosition, Image])
+  private textInputQuery = defineQuery([UIPosition, TextInput])
 
   constructor() {
     this.ctx = world.renderer.ctx
@@ -35,6 +40,7 @@ export class RenderSystem implements System {
     world = this.renderDialog(world)
     world = this.renderText(world)
     world = this.renderImages(world)
+    world = this.renderTextInputs(world)
     return world
   }
 
@@ -67,39 +73,56 @@ export class RenderSystem implements System {
 
       const width = UIRenderable.width[entity]
       const height = UIRenderable.height[entity]
-
-      const yOffset =
-        UITexture.textureOffsetY[entity] +
-        (UIButton.pressed[entity]
-          ? UITexture.textureSizeY[entity] * 2
-          : UIButton.hovered[entity]
-            ? UITexture.textureSizeY[entity]
-            : 0)
-
       ctx.save()
-      ctx.translate(x, y)
-      ctx.drawImage(
-        world.assets.getAssetById<HTMLImageElement>(UITexture.textureId[entity])!,
-        UITexture.textureOffsetX[entity],
-        yOffset,
-        UITexture.textureSizeX[entity],
-        UITexture.textureSizeY[entity],
-        0,
-        0,
-        width,
-        height
-      )
 
-      ctx.fillStyle = UIButton.pressed[entity]
+      ctx.translate(x, y)
+
+      if (!hasComponent(world, UITexture, entity)) {
+        ctx.fillStyle = colorToCss(UIColor.color[entity])
+        ctx.fillRect(0, 0, width, height)
+      } else {
+        const yOffset =
+          UITexture.textureOffsetY[entity] +
+          (UISelectable.pressed[entity]
+            ? UITexture.textureSizeY[entity] * 2
+            : UISelectable.hovered[entity]
+              ? UITexture.textureSizeY[entity]
+              : 0)
+
+        ctx.drawImage(
+          world.assets.getAssetById<HTMLImageElement>(UITexture.textureId[entity])!,
+          UITexture.textureOffsetX[entity],
+          yOffset,
+          UITexture.textureSizeX[entity],
+          UITexture.textureSizeY[entity],
+          0,
+          0,
+          width,
+          height
+        )
+      }
+
+      ctx.fillStyle = UISelectable.pressed[entity]
         ? colorToCss(UIButton.foregroundPressed[entity])
-        : UIButton.hovered[entity]
+        : UISelectable.hovered[entity]
           ? colorToCss(UIButton.foregroundHover[entity])
           : colorToCss(UIButton.foreground[entity])
       ctx.font = '32px chakra_petch'
       ctx.textBaseline = 'middle'
       ctx.textAlign = 'center'
 
-      const text = world.assets.getAssetById<string>(UIText.textId[entity]) || ''
+      let text
+
+      switch (UIText.textSource[entity]) {
+        case 1:
+          text = world.assets.getAssetById<string>(UIText.textId[entity]) || ''
+          break
+        case 2:
+          text = getString(UIText.textId[entity])
+          break
+        default:
+          text = ''
+      }
 
       ctx.fillText(text, width / 2, height / 2, width - 10)
       ctx.restore()
@@ -121,7 +144,7 @@ export class RenderSystem implements System {
         UITexture.textureOffsetY[entity] +
         (UICheckbox.checked[entity]
           ? UITexture.textureSizeY[entity] * 2
-          : UICheckbox.hovered[entity]
+          : UISelectable.hovered[entity]
             ? UITexture.textureSizeY[entity]
             : 0)
 
@@ -236,6 +259,72 @@ export class RenderSystem implements System {
 
       ctx.restore()
     }
+    return world
+  }
+
+  private renderTextInputs(world: ExtendedWorld): ExtendedWorld {
+    const ctx = this.ctx
+
+    for (const entity of this.textInputQuery(world)) {
+      if (!UIRenderable.visible[entity]) continue
+
+      const x = UIPosition.x[entity]
+      const y = UIPosition.y[entity]
+
+      const width = UIRenderable.width[entity]
+      const height = UIRenderable.height[entity]
+
+      ctx.save()
+      ctx.translate(x, y)
+
+      ctx.fillStyle = 'white'
+      ctx.fillRect(0, 0, width, height)
+
+      ctx.strokeStyle = TextInput.focused[entity] ? 'blue' : 'gray'
+      ctx.lineWidth = 2
+      ctx.strokeRect(0, 0, width, height)
+
+      ctx.beginPath()
+      ctx.rect(2, 2, width - 4, height - 4)
+      ctx.clip()
+
+      ctx.fillStyle = 'black'
+      ctx.font = `${height - 10}px chakra_petch`
+      ctx.textBaseline = 'middle'
+
+      const text = getString(UIText.textId[entity])
+
+      const textWidth = ctx.measureText(text).width
+
+      let scrollOffset = 0
+      if (textWidth + 10 > width) {
+        const cursorX = ctx.measureText(text.slice(0, TextInput.cursor[entity])).width
+        if (cursorX - scrollOffset > width - 10) {
+          scrollOffset = cursorX - (width - 10)
+        } else if (cursorX - scrollOffset < 0) {
+          scrollOffset = cursorX
+        }
+      }
+
+      const visibleText = text.slice(
+        Math.max(0, scrollOffset / ctx.measureText(' ').width),
+        text.length
+      )
+
+      ctx.fillText(visibleText, 5 - scrollOffset, height / 2)
+
+      if (TextInput.focused[entity]) {
+        const cursorX = textWidth - scrollOffset + 5
+
+        ctx.beginPath()
+        ctx.moveTo(cursorX, 5)
+        ctx.lineTo(cursorX, height - 5)
+        ctx.stroke()
+      }
+
+      ctx.restore()
+    }
+
     return world
   }
 }

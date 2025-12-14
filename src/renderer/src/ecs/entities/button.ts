@@ -6,6 +6,7 @@ import { UIButton } from '../components/uiButton'
 import type { ExtendedWorld } from '../world'
 import { UITexture } from '../components/uiTexture'
 import { UIText } from '../components/uiText'
+import { UISelectable } from '../components/uiSelectable'
 
 export function createButtonEntity(
   world: ExtendedWorld,
@@ -31,6 +32,7 @@ export function createButtonEntity(
   addComponent(world, UICallback, entity)
   addComponent(world, UITexture, entity)
   addComponent(world, UIText, entity)
+  addComponent(world, UISelectable, entity)
 
   UIPosition.x[entity] = x
   UIPosition.y[entity] = y
@@ -39,6 +41,7 @@ export function createButtonEntity(
   UIRenderable.height[entity] = textureSizeY * scale
   UIRenderable.visible[entity] = 1
   UIText.textId[entity] = world.assets.getAssetId(textName)!
+  UIText.textSource[entity] = 1
 
   UICallback.onClick[entity] = callbackId
 
@@ -51,8 +54,9 @@ export function createButtonEntity(
   UIButton.foreground[entity] = foregroundColor
   UIButton.foregroundHover[entity] = hoverForegroundColor
   UIButton.foregroundPressed[entity] = pressedForegroundColor
-  UIButton.hovered[entity] = 0
-  UIButton.pressed[entity] = 0
+  
+  UISelectable.hovered[entity] = 0
+  UISelectable.pressed[entity] = 0
 
   return entity
 }

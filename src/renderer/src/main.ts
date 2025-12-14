@@ -1,6 +1,7 @@
 import { world } from './ecs/world'
 import { LoadingScene } from './scenes/LoadingScene'
 import { MainMenuScene } from './scenes/MainMenuScene'
+import { SavesScene } from './scenes/SavesScene'
 import { SettingsScene } from './scenes/SettingsScene'
 
 let last = performance.now()
@@ -25,6 +26,7 @@ export async function initGameEngine(): Promise<void> {
   world.scenes.registerScene('loading', new LoadingScene())
   world.scenes.registerScene('main_menu', new MainMenuScene())
   world.scenes.registerScene('settings', new SettingsScene())
+  world.scenes.registerScene('saves', new SavesScene())
 
   await world.scenes.loadScene('loading')
 

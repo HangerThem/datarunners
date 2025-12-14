@@ -6,6 +6,7 @@ import type { ExtendedWorld } from '../world'
 import { UITexture } from '../components/uiTexture'
 import { UICheckbox } from '../components/uiCheckbox'
 import { UIText } from '../components/uiText'
+import { UISelectable } from '../components/uiSelectable'
 
 export function createCheckboxEntity(
   world: ExtendedWorld,
@@ -28,6 +29,7 @@ export function createCheckboxEntity(
   addComponent(world, UIPosition, entity)
   addComponent(world, UICallback, entity)
   addComponent(world, UITexture, entity)
+  addComponent(world, UISelectable, entity)
 
   UIPosition.x[entity] = x
   UIPosition.y[entity] = y
@@ -44,11 +46,13 @@ export function createCheckboxEntity(
   UITexture.textureOffsetX[entity] = textureOffsetX
   UITexture.textureOffsetY[entity] = textureOffsetY
 
-  UICheckbox.hovered[entity] = 0
-  UICheckbox.pressed[entity] = 0
   UICheckbox.checked[entity] = checked ? 1 : 0
 
+  UISelectable.hovered[entity] = 0
+  UISelectable.pressed[entity] = 0
+
   UIText.textId[entity] = textId
+  UIText.textSource[entity] = 1
 
   return entity
 }

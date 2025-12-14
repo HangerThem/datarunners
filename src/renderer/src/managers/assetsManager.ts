@@ -15,7 +15,7 @@ export class AssetsManager {
   async loadImage(name: string, src: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const img = new Image()
-      img.src = asset(src)
+      img.src = asset(src, 'image')
       img.onload = () => {
         this.assets.set(name, { dataType: 'image', data: img })
         resolve()
@@ -29,7 +29,7 @@ export class AssetsManager {
 
   async loadAudio(name: string, src: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const audioUrl = asset(src)
+      const audioUrl = asset(src, 'audio')
       const sound = new Howl({
         src: [audioUrl],
         onload: () => {
@@ -52,7 +52,7 @@ export class AssetsManager {
   }
 
   async loadText(name: string, src: string): Promise<void> {
-    return fetch(asset(src))
+    return fetch(asset(src, 'text'))
       .then((response) => response.json())
       .then((text) => {
         this.assets.set(name, { dataType: 'text', data: text })
@@ -70,7 +70,7 @@ export class AssetsManager {
   }
 
   async loadFont(name: string, src: string): Promise<void> {
-    const font = new FontFace(name, `url(${asset(src)})`)
+    const font = new FontFace(name, `url(${asset(src, 'font')})`)
 
     await font.load()
     document.fonts.add(font)

@@ -1,0 +1,51 @@
+import { defineQuery } from 'bitecs'
+import { TextInput } from '../components/textInput'
+import { UIText } from '../components/uiText'
+import { ExtendedWorld } from '../world'
+import { System } from './system'
+import { editString, getString } from '../../utils/stringAllocator'
+import { getCharFromKeyId, getKeyId } from '../../utils/key'
+
+export class TextEditSystem implements System {
+  private textInputQuery = defineQuery([TextInput, UIText])
+
+  update(world: ExtendedWorld, dt: number): ExtendedWorld {
+    return this.updateTextEdit(world, dt)
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private updateTextEdit(world: ExtendedWorld, _dt: number): ExtendedWorld {
+    const ents = this.textInputQuery(world)
+    for (const e of ents) {
+      if (!TextInput.focused[e]) continue
+
+      const id = UIText.textId[e]
+      let text = getString(id)
+
+      for (const charId of world.input.activeKeys) {
+        const char = getCharFromKeyId(charId)
+        if (char && text.length < TextInput.maxLength[e]) {
+          const cursorPos = TextInput.cursor[e]
+          text = text.slice(0, cursorPos) + char + text.slice(cursorPos)
+          TextInput.cursor[e]++
+        }
+      }
+
+      if (world.input.keysPressed[getKeyId('Backspace')] && text.length > 0) {
+        const cursorPos = TextInput.cursor[e]
+        text = text.slice(0, cursorPos - 1) + text.slice(cursorPos)
+        TextInput.cursor[e] = Math.max(0, cursorPos - 1)
+      }
+
+      if (world.input.keysPressed[getKeyId('ArrowLeft')]) {
+        TextInput.cursor[e] = Math.max(0, TextInput.cursor[e] - 1)
+      } else if (world.input.keysPressed[getKeyId('ArrowRight')]) {
+        TextInput.cursor[e] = Math.min(text.length, TextInput.cursor[e] + 1)
+      }
+
+      editString(id, text)
+    }
+
+    return world
+  }
+}

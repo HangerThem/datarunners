@@ -14,6 +14,13 @@ interface GameSettings {
   }
 }
 
+interface SaveData {
+  slot: number
+  timestamp: number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  gameState: any
+}
+
 const scheme = 'game'
 protocol.registerSchemesAsPrivileged([
   {
@@ -64,6 +71,70 @@ function createWindow(): void {
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  ipcMain.on('settings:save', (_event, settings: GameSettings) => {
+    const userDataPath = app.getPath('userData')
+    const settingsPath = join(userDataPath, 'settings.json')
+    const data = JSON.stringify(settings, null, 2)
+    writeFileSync(settingsPath, data, 'utf-8')
+  })
+
+  ipcMain.handle('settings:load', async () => {
+    const userDataPath = app.getPath('userData')
+    const settingsPath = join(userDataPath, 'settings.json')
+    if (existsSync(settingsPath)) {
+      const data = readFileSync(settingsPath, 'utf-8')
+      return JSON.parse(data)
+    }
+    return null
+  })
+
+  ipcMain.on('save:save', (_event, save: SaveData) => {
+    const userDataPath = app.getPath('userData')
+    const savesPath = join(userDataPath, 'saves.json')
+    const exists = existsSync(savesPath)
+    if (exists) {
+      const data = readFileSync(savesPath, 'utf-8')
+      const saves = JSON.parse(data)
+      saves[save.slot] = save
+      const newData = JSON.stringify(saves, null, 2)
+      writeFileSync(savesPath, newData, 'utf-8')
+      return
+    } else {
+      const saves: SaveData[] = []
+      saves[save.slot] = save
+      const newData = JSON.stringify(saves, null, 2)
+      writeFileSync(savesPath, newData, 'utf-8')
+    }
+  })
+
+  ipcMain.handle('save:delete', async (_event, slot: number) => {
+    const userDataPath = app.getPath('userData')
+    const savesPath = join(userDataPath, 'saves.json')
+    if (existsSync(savesPath)) {
+      const data = readFileSync(savesPath, 'utf-8')
+      const saves = JSON.parse(data)
+      if (slot >= 0 && slot < saves.length) {
+        saves.splice(slot, 1)
+        const newData = JSON.stringify(saves, null, 2)
+        writeFileSync(savesPath, newData, 'utf-8')
+      }
+    }
+  })
+
+  ipcMain.handle('saves:load', async () => {
+    const userDataPath = app.getPath('userData')
+    const savesPath = join(userDataPath, 'saves.json')
+    if (existsSync(savesPath)) {
+      const data = readFileSync(savesPath, 'utf-8')
+      return JSON.parse(data)
+    } else {
+      const saves: SaveData[] = []
+      const newData = JSON.stringify(saves, null, 2)
+      writeFileSync(savesPath, newData, 'utf-8')
+      return saves
+    }
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -130,23 +201,6 @@ app.whenReady().then(() => {
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
-  })
-
-  ipcMain.handle('settings:load', async () => {
-    const userDataPath = app.getPath('userData')
-    const settingsPath = join(userDataPath, 'settings.json')
-    if (existsSync(settingsPath)) {
-      const data = readFileSync(settingsPath, 'utf-8')
-      return JSON.parse(data)
-    }
-    return null
-  })
-
-  ipcMain.on('settings:save', (_event, settings: GameSettings) => {
-    const userDataPath = app.getPath('userData')
-    const settingsPath = join(userDataPath, 'settings.json')
-    const data = JSON.stringify(settings, null, 2)
-    writeFileSync(settingsPath, data, 'utf-8')
   })
 
   createWindow()

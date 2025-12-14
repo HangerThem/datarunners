@@ -1,8 +1,9 @@
-import { KeyCode, type ExtendedWorld } from '../world'
+import type { ExtendedWorld } from '../world'
 import { Dialog, DialogText } from '../components/dialog'
 import { defineQuery } from 'bitecs'
 import { getCurrentLineText } from '../../utils/text'
 import { System } from './system'
+import { getKeyId } from '../../utils/key'
 
 export class DialogSystem implements System {
   private query = defineQuery([Dialog, DialogText])
@@ -27,7 +28,7 @@ export class DialogSystem implements System {
       DialogText.charDelay[currentDialog] += dt
     }
 
-    if (input.keysPressed[KeyCode.Space]) {
+    if (input.keysPressed[getKeyId('Space')]) {
       if (DialogText.currentChar[currentDialog] < getCurrentLineText(world, currentDialog).length) {
         DialogText.currentChar[currentDialog] = getCurrentLineText(world, currentDialog).length
         return world

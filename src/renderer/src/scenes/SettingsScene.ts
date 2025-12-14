@@ -7,8 +7,15 @@ import { CursorSystem } from '../ecs/systems/cursorSystem'
 import { InputSystem } from '../ecs/systems/inputSystem'
 import { createButtonEntity } from '../ecs/entities/button'
 import { hexColor } from '../utils/colors'
-import { getAllEntities, removeEntity } from 'bitecs'
+import { addComponent, addEntity, getAllEntities, removeEntity } from 'bitecs'
 import { createCheckboxEntity } from '../ecs/entities/checkbox'
+import { UIText } from '../ecs/components/uiText'
+import { UIPosition } from '../ecs/components/uiPosition'
+import { UIRenderable } from '../ecs/components/uiRenderable'
+import { UISelectable } from '../ecs/components/uiSelectable'
+import { TextInput } from '../ecs/components/textInput'
+import { allocString } from '../utils/stringAllocator'
+import { TextEditSystem } from '../ecs/systems/textEditSystem'
 
 interface GameSettings {
   graphics: {
@@ -25,7 +32,13 @@ export class SettingsScene implements Scene {
   private settingsData: GameSettings | null = null
 
   constructor() {
-    this.systems = [new UISystem(), new CursorSystem(), new InputSystem(), new RenderSystem()]
+    this.systems = [
+      new UISystem(),
+      new CursorSystem(),
+      new TextEditSystem(),
+      new InputSystem(),
+      new RenderSystem()
+    ]
   }
 
   async load(): Promise<void> {
@@ -39,18 +52,18 @@ export class SettingsScene implements Scene {
     await world.assets.loadImages([
       {
         name: 'checkbox_normal',
-        src: 'assets/ui/checkbox_normal.png'
+        src: 'ui/checkbox_normal.png'
       }
     ])
 
     await world.assets.loadTexts([
       {
         name: 'back_button_text',
-        src: 'assets/texts/buttons/back_button_text.json'
+        src: 'buttons/back.json'
       },
       {
         name: 'save_button_text',
-        src: 'assets/texts/buttons/save_button_text.json'
+        src: 'buttons/save.json'
       }
     ])
 
@@ -111,6 +124,28 @@ export class SettingsScene implements Scene {
       }),
       world.assets.addTextAsset('fullscreen_checkbox_text', 'Fullscreen')
     )
+
+    const inputEntity = addEntity(world)
+
+    addComponent(world, UIText, inputEntity)
+    addComponent(world, UIPosition, inputEntity)
+    addComponent(world, UIRenderable, inputEntity)
+    addComponent(world, UISelectable, inputEntity)
+    addComponent(world, TextInput, inputEntity)
+
+    UIPosition.x[inputEntity] = world.renderer.width / 2 - 100
+    UIPosition.y[inputEntity] = 720
+
+    UIRenderable.width[inputEntity] = 200
+    UIRenderable.height[inputEntity] = 40
+    UIRenderable.visible[inputEntity] = 1
+
+    UIText.textId[inputEntity] = allocString('')
+    UIText.textSource[inputEntity] = 2
+
+    TextInput.cursor[inputEntity] = 0
+    TextInput.maxLength[inputEntity] = 256
+    TextInput.focused[inputEntity] = 0
   }
 
   update(dt: number): void {

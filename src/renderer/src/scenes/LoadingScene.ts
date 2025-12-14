@@ -16,7 +16,7 @@ export class LoadingScene implements Scene {
   }
 
   async load(): Promise<void> {
-    await world.assets.loadImages([{ name: 'splash', src: 'assets/images/splash.png' }])
+    await world.assets.loadImages([{ name: 'splash', src: 'splash.png' }])
 
     const loading = addEntity(world)
 

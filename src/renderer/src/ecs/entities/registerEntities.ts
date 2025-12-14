@@ -1,9 +1,7 @@
 import { addComponent, addEntity } from 'bitecs'
 import { hexColor } from '../../utils/colors'
-import { Dialog } from '../components/dialog'
 import type { ExtendedWorld } from '../world'
 import { createButtonEntity } from './button'
-import { createDialogEntity } from './dialog'
 import { UIRenderable } from '../components/uiRenderable'
 import { UIPosition } from '../components/uiPosition'
 import { UITexture } from '../components/uiTexture'
@@ -29,8 +27,6 @@ export function registerEntities(world: ExtendedWorld): void {
   UITexture.textureSizeX[loading] = 1024
   UITexture.textureSizeY[loading] = 512
 
-  const dialog = createDialogEntity(world, 'dialog_01', 1024, 256, 'dialog', 1024, 256, 0, 0)
-
   createButtonEntity(
     world,
     'start_button_text',
@@ -47,7 +43,7 @@ export function registerEntities(world: ExtendedWorld): void {
     hexColor('#00FF00FF'),
     world.callbacks.registerCallback(() => {
       world.audio.playSound('click_sound')
-      Dialog.active[dialog] = 1
+      world.scenes.loadScene('saves')
     })
   )
 

@@ -24,29 +24,28 @@ export class MainMenuScene implements Scene {
 
   async load(): Promise<void> {
     await world.assets.loadImages([
-      { name: 'button_normal_medium', src: 'assets/ui/button_normal_medium.png' },
-      { name: 'button_danger_medium', src: 'assets/ui/button_danger_medium.png' },
-      { name: 'dialog', src: 'assets/ui/dialog.png' }
+      { name: 'button_normal_medium', src: 'ui/button_normal_medium.png' },
+      { name: 'button_danger_medium', src: 'ui/button_danger_medium.png' }
     ])
 
     await world.assets.loadTexts([
-      { name: 'dialog_01', src: 'assets/texts/dialog_01.json' },
       {
         name: 'start_button_text',
-        src: 'assets/texts/buttons/start_button_text.json'
+        src: 'buttons/start.json'
       },
       {
         name: 'quit_button_text',
-        src: 'assets/texts/buttons/quit_button_text.json'
+        src: 'buttons/quit.json'
       },
       {
         name: 'settings_button_text',
-        src: 'assets/texts/buttons/settings_button_text.json'
+        src: 'buttons/settings.json'
       }
     ])
-    await world.assets.loadAudios([{ name: 'click_sound', src: 'assets/audio/click.mp3' }])
 
-    await world.assets.loadFonts([{ name: 'chakra_petch', src: 'assets/fonts/ChakraPetch.ttf' }])
+    await world.assets.loadAudios([{ name: 'click_sound', src: 'click.mp3' }])
+
+    await world.assets.loadFonts([{ name: 'chakra_petch', src: 'ChakraPetch.ttf' }])
 
     registerEntities(world)
   }

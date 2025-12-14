@@ -4,12 +4,15 @@ import { CallbackManager } from '../managers/callbackManager'
 import { AudioManager } from '../managers/audioManager'
 import { CursorType } from '../types/cursor'
 import { SceneManager } from '../managers/sceneManager'
+import { getKeyId, mouseButtonToCode } from '../utils/key'
 
 export interface InputResource {
   keysDown: Uint8Array
   keysPressed: Uint8Array
   keysReleased: Uint8Array
   holdTimes: Float32Array
+
+  activeKeys: Set<number>
 }
 
 export interface MousePosition {
@@ -36,26 +39,14 @@ export interface ExtendedWorld extends IWorld {
 
 export const world: ExtendedWorld = createWorld() as ExtendedWorld
 
-export const KeyCode = {
-  MouseLeft: 0,
-  MouseRight: 1,
-  KeyW: 2,
-  KeyA: 3,
-  KeyS: 4,
-  KeyD: 5,
-  KeyE: 6,
-  Space: 7,
-  Shift: 8,
-  Tab: 9
-}
-
-export const KEY_COUNT = Object.keys(KeyCode).length
+const MAX_KEYS = 256
 
 world.input = {
-  keysDown: new Uint8Array(KEY_COUNT),
-  keysPressed: new Uint8Array(KEY_COUNT),
-  keysReleased: new Uint8Array(KEY_COUNT),
-  holdTimes: new Float32Array(KEY_COUNT)
+  keysDown: new Uint8Array(MAX_KEYS),
+  keysPressed: new Uint8Array(MAX_KEYS),
+  keysReleased: new Uint8Array(MAX_KEYS),
+  holdTimes: new Float32Array(MAX_KEYS),
+  activeKeys: new Set<number>()
 }
 world.mousePosition = { x: 0, y: 0 }
 
@@ -89,10 +80,12 @@ function keydownHandler(e: KeyboardEvent): void {
   e.stopPropagation()
   e.stopImmediatePropagation()
 
-  const code = KeyCode[e.code]
-  if (code !== undefined && !world.input.keysDown[code]) {
-    world.input.keysDown[code] = 1
-    world.input.keysPressed[code] = 1
+  const key = getKeyId(e.code)
+
+  if (!world.input.keysDown[key]) {
+    world.input.keysDown[key] = 1
+    world.input.keysPressed[key] = 1
+    world.input.activeKeys.add(key)
   }
 }
 
@@ -101,20 +94,21 @@ function keyupHandler(e: KeyboardEvent): void {
   e.stopPropagation()
   e.stopImmediatePropagation()
 
-  const code = KeyCode[e.code]
-  if (code !== undefined && world.input.keysDown[code]) {
-    world.input.keysDown[code] = 0
-    world.input.keysReleased[code] = 1
-    world.input.holdTimes[code] = 0
+  const key = getKeyId(e.code)
+
+  if (world.input.keysDown[key]) {
+    world.input.keysDown[key] = 0
+    world.input.keysReleased[key] = 1
+    world.input.holdTimes[key] = 0
   }
 }
 
 function blurHandler(): void {
-  for (let i = 0; i < KEY_COUNT; i++) {
-    world.input.keysDown[i] = 0
-    world.input.keysReleased[i] = 1
-    world.input.holdTimes[i] = 0
-  }
+  world.input.keysDown.fill(0)
+  world.input.keysPressed.fill(0)
+  world.input.keysReleased.fill(0)
+  world.input.holdTimes.fill(0)
+  world.input.activeKeys.clear()
 
   world.cursor = 'default'
   world.mousePosition = { x: -1, y: -1 }
@@ -125,16 +119,15 @@ function mousedownHandler(e: MouseEvent): void {
   e.stopPropagation()
   e.stopImmediatePropagation()
 
-  let code: number | undefined
-  if (e.button === 0) {
-    code = KeyCode.MouseLeft
-  } else if (e.button === 2) {
-    code = KeyCode.MouseRight
-  }
+  const code = mouseButtonToCode(e.button)
+  if (!code) return
 
-  if (code !== undefined && !world.input.keysDown[code]) {
-    world.input.keysDown[code] = 1
-    world.input.keysPressed[code] = 1
+  const key = getKeyId(code)
+
+  if (!world.input.keysDown[key]) {
+    world.input.keysDown[key] = 1
+    world.input.keysPressed[key] = 1
+    world.input.activeKeys.add(key)
   }
 }
 
@@ -143,17 +136,16 @@ function mouseupHandler(e: MouseEvent): void {
   e.stopPropagation()
   e.stopImmediatePropagation()
 
-  let code: number | undefined
-  if (e.button === 0) {
-    code = KeyCode.MouseLeft
-  } else if (e.button === 2) {
-    code = KeyCode.MouseRight
-  }
+  const code = mouseButtonToCode(e.button)
+  if (!code) return
 
-  if (code !== undefined && world.input.keysDown[code]) {
-    world.input.keysDown[code] = 0
-    world.input.keysReleased[code] = 1
-    world.input.holdTimes[code] = 0
+  const key = getKeyId(code)
+
+  if (world.input.keysDown[key]) {
+    world.input.keysDown[key] = 0
+    world.input.keysReleased[key] = 1
+    world.input.holdTimes[key] = 0
+    world.input.activeKeys.add(key)
   }
 }
 
