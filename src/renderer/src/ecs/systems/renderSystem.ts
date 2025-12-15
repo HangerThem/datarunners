@@ -1,22 +1,23 @@
 import { defineQuery, hasComponent } from 'bitecs'
-import { UIPosition } from '../components/uiPosition'
+import { UIPosition } from '../components/ui/uiPosition'
 import { world, type ExtendedWorld } from '../world'
 import { Dialog, DialogText } from '../components/dialog'
 import { getCurrentLineText } from '../../utils/text'
 import { UIButton } from '../components/uiButton'
-import { UIRenderable } from '../components/uiRenderable'
+import { UIRenderable } from '../components/ui/uiRenderable'
 import { colorToCss } from '../../utils/colors'
 import { wrapText } from '../../utils/text'
-import { UITexture } from '../components/uiTexture'
+import { UITexture } from '../components/ui/uiTexture'
 import { System } from './system'
-import { UIText } from '../components/uiText'
-import { UIPureText } from '../components/uiPureText'
-import { UICheckbox } from '../components/uiCheckbox'
+import { UIText } from '../components/ui/uiText'
+import { UIPureText } from '../components/ui/uiPureText'
+import { UICheckbox } from '../components/ui/uiCheckbox'
 import { Image } from '../components/image'
 import { getString } from '../../utils/stringAllocator'
-import { UIColor } from '../components/uiColor'
-import { UISelectable } from '../components/uiSelectable'
+import { UIColor } from '../components/ui/uiColor'
+import { UISelectable } from '../components/ui/uiSelectable'
 import { TextInput } from '../components/textInput'
+import { UIFont } from '../components/ui/uiFont'
 
 export class RenderSystem implements System {
   private ctx: CanvasRenderingContext2D
@@ -284,8 +285,14 @@ export class RenderSystem implements System {
       ctx.lineWidth = 2
       ctx.strokeRect(0, 0, width, height)
 
-      ctx.fillStyle = 'black'
-      ctx.font = `${height - 10}px chakra_petch`
+      if (hasComponent(world, UIFont, entity)) {
+        ctx.fillStyle = colorToCss(UIFont.color[entity])
+        ctx.font = `${UIFont.fontSize[entity]}px ${world.assets.getAssetById<string>(UIFont.fontFamilyId[entity])}`
+      } else {
+        ctx.fillStyle = 'black'
+        ctx.font = `${height - 10}px chakra_petch`
+      }
+
       ctx.textBaseline = 'middle'
 
       const text = getString(UIText.textId[entity]) || ''

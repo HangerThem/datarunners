@@ -9,13 +9,14 @@ import { createButtonEntity } from '../ecs/entities/button'
 import { hexColor } from '../utils/colors'
 import { addComponent, addEntity, getAllEntities, removeEntity } from 'bitecs'
 import { createCheckboxEntity } from '../ecs/entities/checkbox'
-import { UIText } from '../ecs/components/uiText'
-import { UIPosition } from '../ecs/components/uiPosition'
-import { UIRenderable } from '../ecs/components/uiRenderable'
-import { UISelectable } from '../ecs/components/uiSelectable'
+import { UIText } from '../ecs/components/ui/uiText'
+import { UIPosition } from '../ecs/components/ui/uiPosition'
+import { UIRenderable } from '../ecs/components/ui/uiRenderable'
+import { UISelectable } from '../ecs/components/ui/uiSelectable'
 import { TextInput } from '../ecs/components/textInput'
 import { allocString } from '../utils/stringAllocator'
 import { TextEditSystem } from '../ecs/systems/textEditSystem'
+import { UIFont } from '../ecs/components/ui/uiFont'
 
 interface GameSettings {
   graphics: {
@@ -132,6 +133,7 @@ export class SettingsScene implements Scene {
     addComponent(world, UIRenderable, inputEntity)
     addComponent(world, UISelectable, inputEntity)
     addComponent(world, TextInput, inputEntity)
+    addComponent(world, UIFont, inputEntity)
 
     UIPosition.x[inputEntity] = world.renderer.width / 2 - 100
     UIPosition.y[inputEntity] = 720
@@ -146,6 +148,10 @@ export class SettingsScene implements Scene {
     TextInput.cursor[inputEntity] = 0
     TextInput.maxLength[inputEntity] = 256
     TextInput.focused[inputEntity] = 0
+
+    UIFont.fontSize[inputEntity] = 24
+    UIFont.fontFamilyId[inputEntity] = world.assets.getAssetId('chakra_petch')!
+    UIFont.color[inputEntity] = hexColor('#000000ff')
   }
 
   update(dt: number): void {

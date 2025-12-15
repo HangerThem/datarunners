@@ -73,6 +73,7 @@ export class AssetsManager {
     const font = new FontFace(name, `url(${asset(src, 'font')})`)
 
     await font.load()
+    this.addTextAsset(name, name)
     document.fonts.add(font)
   }
 

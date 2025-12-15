@@ -1,9 +1,9 @@
 import { addEntity, addComponent } from 'bitecs'
 import { Dialog, DialogText } from '../components/dialog'
-import { UIPosition } from '../components/uiPosition'
+import { UIPosition } from '../components/ui/uiPosition'
 import type { ExtendedWorld } from '../world'
-import { UITexture } from '../components/uiTexture'
-import { UIRenderable } from '../components/uiRenderable'
+import { UITexture } from '../components/ui/uiTexture'
+import { UIRenderable } from '../components/ui/uiRenderable'
 
 export function createDialogEntity(
   world: ExtendedWorld,

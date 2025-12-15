@@ -1,6 +1,6 @@
 import { defineQuery } from 'bitecs'
 import { TextInput } from '../components/textInput'
-import { UIText } from '../components/uiText'
+import { UIText } from '../components/ui/uiText'
 import { ExtendedWorld } from '../world'
 import { System } from './system'
 import { editString, getString } from '../../utils/stringAllocator'
@@ -30,7 +30,12 @@ export class TextEditSystem implements System {
         }
       }
 
-      if (world.input.keysPressed[getKeyId('Backspace')] && text.length > 0) {
+      if (
+        (world.input.keysPressed[getKeyId('Backspace')] ||
+          (world.input.holdTimes[getKeyId('Backspace')] > 150 &&
+            world.input.holdTimes[getKeyId('Backspace')] % 100 < 20)) &&
+        text.length > 0
+      ) {
         const cursorPos = TextInput.cursor[e]
         if (cursorPos === 0) continue
         text = text.slice(0, cursorPos - 1) + text.slice(cursorPos)
@@ -40,9 +45,17 @@ export class TextEditSystem implements System {
         text = text.slice(0, cursorPos) + text.slice(cursorPos + 1)
       }
 
-      if (world.input.keysPressed[getKeyId('ArrowLeft')]) {
+      if (
+        world.input.keysPressed[getKeyId('ArrowLeft')] ||
+        (world.input.holdTimes[getKeyId('ArrowLeft')] > 150 &&
+          world.input.holdTimes[getKeyId('ArrowLeft')] % 100 < 20)
+      ) {
         TextInput.cursor[e] = Math.max(0, TextInput.cursor[e] - 1)
-      } else if (world.input.keysPressed[getKeyId('ArrowRight')]) {
+      } else if (
+        world.input.keysPressed[getKeyId('ArrowRight')] ||
+        (world.input.holdTimes[getKeyId('ArrowRight')] > 150 &&
+          world.input.holdTimes[getKeyId('ArrowRight')] % 100 < 20)
+      ) {
         TextInput.cursor[e] = Math.min(text.length, TextInput.cursor[e] + 1)
       }
 

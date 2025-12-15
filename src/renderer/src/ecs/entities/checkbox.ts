@@ -1,12 +1,12 @@
 import { addEntity, addComponent } from 'bitecs'
-import { UIPosition } from '../components/uiPosition'
-import { UIRenderable } from '../components/uiRenderable'
-import { UICallback } from '../components/uiCallback'
+import { UIPosition } from '../components/ui/uiPosition'
+import { UIRenderable } from '../components/ui/uiRenderable'
+import { UICallback } from '../components/ui/uiCallback'
 import type { ExtendedWorld } from '../world'
-import { UITexture } from '../components/uiTexture'
-import { UICheckbox } from '../components/uiCheckbox'
-import { UIText } from '../components/uiText'
-import { UISelectable } from '../components/uiSelectable'
+import { UITexture } from '../components/ui/uiTexture'
+import { UICheckbox } from '../components/ui/uiCheckbox'
+import { UIText } from '../components/ui/uiText'
+import { UISelectable } from '../components/ui/uiSelectable'
 
 export function createCheckboxEntity(
   world: ExtendedWorld,

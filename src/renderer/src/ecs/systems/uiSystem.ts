@@ -1,32 +1,26 @@
-import { UIButton } from '../components/uiButton'
-import { UICallback } from '../components/uiCallback'
-import { defineQuery } from 'bitecs'
+import { UICallback } from '../components/ui/uiCallback'
+import { defineQuery, hasComponent } from 'bitecs'
 import type { ExtendedWorld } from '../world'
-import { UIPosition } from '../components/uiPosition'
-import { UIRenderable } from '../components/uiRenderable'
+import { UIPosition } from '../components/ui/uiPosition'
+import { UIRenderable } from '../components/ui/uiRenderable'
 import { System } from './system'
-import { UICheckbox } from '../components/uiCheckbox'
+import { UICheckbox } from '../components/ui/uiCheckbox'
 import { getKeyId } from '../../utils/key'
-import { UISelectable } from '../components/uiSelectable'
+import { UISelectable } from '../components/ui/uiSelectable'
 import { TextInput } from '../components/textInput'
+import { UIButton } from '../components/uiButton'
 
 export class UISystem implements System {
-  private buttonQuery = defineQuery([UIButton])
-  private checkboxQuery = defineQuery([UICheckbox])
-  private textInputQuery = defineQuery([TextInput])
+  private sellectableQuery = defineQuery([UIPosition, UISelectable])
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   update(world: ExtendedWorld, _dt: number): ExtendedWorld {
-    world = this.updateButtons(world)
-    world = this.updateCheckboxes(world)
-    world = this.updateTextInputs(world)
+    world = this.updateSellectables(world)
     return world
   }
 
-  private updateButtons(world: ExtendedWorld): ExtendedWorld {
-    for (const entity of this.buttonQuery(world)) {
-      const callback = UICallback.onClick[entity]
-
+  private updateSellectables(world: ExtendedWorld): ExtendedWorld {
+    for (const entity of this.sellectableQuery(world)) {
       const mouseX = world.mousePosition.x
       const mouseY = world.mousePosition.y
 
@@ -42,71 +36,10 @@ export class UISystem implements System {
         world.cursor = 'pointer'
       }
 
-      UISelectable.hovered[entity] = isHovered ? 1 : 0
-
-      const isPressed = isHovered && world.input.keysDown[getKeyId('MouseLeft')]
-      const clicked = isHovered && world.input.keysReleased[getKeyId('MouseLeft')]
-
-      UISelectable.pressed[entity] = isPressed ? 1 : 0
-
-      if (callback && clicked) {
-        world.callbacks.invokeCallback(callback)
-      }
-    }
-
-    return world
-  }
-
-  private updateCheckboxes(world: ExtendedWorld): ExtendedWorld {
-    for (const entity of this.checkboxQuery(world)) {
-      const callback = UICallback.onClick[entity]
-
-      const mouseX = world.mousePosition.x
-      const mouseY = world.mousePosition.y
-
-      const x = UIPosition.x[entity]
-      const y = UIPosition.y[entity]
-
-      const width = UIRenderable.width[entity]
-      const height = UIRenderable.height[entity]
-
-      const isHovered = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height
-
-      if (isHovered) {
-        world.cursor = 'pointer'
-      }
-
-      UISelectable.hovered[entity] = isHovered ? 1 : 0
-
-      const isPressed = isHovered && world.input.keysDown[getKeyId('MouseLeft')]
-      const clicked = isHovered && world.input.keysReleased[getKeyId('MouseLeft')]
-
-      UISelectable.pressed[entity] = isPressed ? 1 : 0
-
-      if (callback && clicked) {
-        UICheckbox.checked[entity] = UICheckbox.checked[entity] ? 0 : 1
-        world.callbacks.invokeCallback(callback)
-      }
-    }
-
-    return world
-  }
-
-  private updateTextInputs(world: ExtendedWorld): ExtendedWorld {
-    for (const entity of this.textInputQuery(world)) {
-      const mouseX = world.mousePosition.x
-      const mouseY = world.mousePosition.y
-
-      const x = UIPosition.x[entity]
-      const y = UIPosition.y[entity]
-
-      const width = UIRenderable.width[entity]
-      const height = UIRenderable.height[entity]
-
-      const isHovered = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height
-
-      if (isHovered) {
-        world.cursor = 'pointer'
+      if (!isHovered && world.input.keysDown[getKeyId('MouseLeft')]) {
+        if (hasComponent(world, TextInput, entity)) {
+          TextInput.focused[entity] = 0
+        }
       }
 
       UISelectable.hovered[entity] = isHovered ? 1 : 0
@@ -117,7 +50,20 @@ export class UISystem implements System {
       UISelectable.pressed[entity] = isPressed ? 1 : 0
 
       if (clicked) {
-        TextInput.focused[entity] = 1
+        if (hasComponent(world, UIButton, entity)) {
+          const callback = UICallback.onClick[entity]
+          if (callback) {
+            world.callbacks.invokeCallback(callback)
+          }
+        } else if (hasComponent(world, UICheckbox, entity)) {
+          const callback = UICallback.onClick[entity]
+          UICheckbox.checked[entity] = UICheckbox.checked[entity] ? 0 : 1
+          if (callback) {
+            world.callbacks.invokeCallback(callback)
+          }
+        } else if (hasComponent(world, TextInput, entity)) {
+          TextInput.focused[entity] = 1
+        }
       }
     }
 

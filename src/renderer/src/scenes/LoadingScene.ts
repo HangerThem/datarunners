@@ -3,9 +3,9 @@ import { world } from '../ecs/world'
 import { RenderSystem } from '../ecs/systems/renderSystem'
 import { System } from '../ecs/systems/system'
 import { addComponent, addEntity, getAllEntities, removeEntity } from 'bitecs'
-import { UIRenderable } from '../ecs/components/uiRenderable'
-import { UIPosition } from '../ecs/components/uiPosition'
-import { UITexture } from '../ecs/components/uiTexture'
+import { UIRenderable } from '../ecs/components/ui/uiRenderable'
+import { UIPosition } from '../ecs/components/ui/uiPosition'
+import { UITexture } from '../ecs/components/ui/uiTexture'
 import { Image } from '../ecs/components/image'
 
 export class LoadingScene implements Scene {

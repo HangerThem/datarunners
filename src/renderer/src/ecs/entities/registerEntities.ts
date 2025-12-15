@@ -2,9 +2,9 @@ import { addComponent, addEntity } from 'bitecs'
 import { hexColor } from '../../utils/colors'
 import type { ExtendedWorld } from '../world'
 import { createButtonEntity } from './button'
-import { UIRenderable } from '../components/uiRenderable'
-import { UIPosition } from '../components/uiPosition'
-import { UITexture } from '../components/uiTexture'
+import { UIRenderable } from '../components/ui/uiRenderable'
+import { UIPosition } from '../components/ui/uiPosition'
+import { UITexture } from '../components/ui/uiTexture'
 import { Image } from '../components/image'
 
 export function registerEntities(world: ExtendedWorld): void {

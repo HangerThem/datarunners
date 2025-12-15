@@ -1,12 +1,12 @@
 import { addEntity, addComponent } from 'bitecs'
-import { UIPosition } from '../components/uiPosition'
-import { UIRenderable } from '../components/uiRenderable'
-import { UICallback } from '../components/uiCallback'
+import { UIPosition } from '../components/ui/uiPosition'
+import { UIRenderable } from '../components/ui/uiRenderable'
+import { UICallback } from '../components/ui/uiCallback'
 import { UIButton } from '../components/uiButton'
 import type { ExtendedWorld } from '../world'
-import { UITexture } from '../components/uiTexture'
-import { UIText } from '../components/uiText'
-import { UISelectable } from '../components/uiSelectable'
+import { UITexture } from '../components/ui/uiTexture'
+import { UIText } from '../components/ui/uiText'
+import { UISelectable } from '../components/ui/uiSelectable'
 
 export function createButtonEntity(
   world: ExtendedWorld,
@@ -54,7 +54,7 @@ export function createButtonEntity(
   UIButton.foreground[entity] = foregroundColor
   UIButton.foregroundHover[entity] = hoverForegroundColor
   UIButton.foregroundPressed[entity] = pressedForegroundColor
-  
+
   UISelectable.hovered[entity] = 0
   UISelectable.pressed[entity] = 0
 
