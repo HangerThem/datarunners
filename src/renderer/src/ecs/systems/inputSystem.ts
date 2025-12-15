@@ -23,6 +23,7 @@ export class InputSystem implements System {
     }
 
     this.input.activeKeys.clear()
+    this.input.textInputBuffer = []
 
     return world
   }

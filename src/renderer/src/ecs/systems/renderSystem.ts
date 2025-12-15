@@ -284,41 +284,24 @@ export class RenderSystem implements System {
       ctx.lineWidth = 2
       ctx.strokeRect(0, 0, width, height)
 
-      ctx.beginPath()
-      ctx.rect(2, 2, width - 4, height - 4)
-      ctx.clip()
-
       ctx.fillStyle = 'black'
       ctx.font = `${height - 10}px chakra_petch`
       ctx.textBaseline = 'middle'
 
-      const text = getString(UIText.textId[entity])
+      const text = getString(UIText.textId[entity]) || ''
 
-      const textWidth = ctx.measureText(text).width
-
-      let scrollOffset = 0
-      if (textWidth + 10 > width) {
-        const cursorX = ctx.measureText(text.slice(0, TextInput.cursor[entity])).width
-        if (cursorX - scrollOffset > width - 10) {
-          scrollOffset = cursorX - (width - 10)
-        } else if (cursorX - scrollOffset < 0) {
-          scrollOffset = cursorX
-        }
-      }
-
-      const visibleText = text.slice(
-        Math.max(0, scrollOffset / ctx.measureText(' ').width),
-        text.length
-      )
-
-      ctx.fillText(visibleText, 5 - scrollOffset, height / 2)
+      ctx.fillText(text, 5, height / 2, width - 10)
 
       if (TextInput.focused[entity]) {
-        const cursorX = textWidth - scrollOffset + 5
+        const cursorPos = TextInput.cursor[entity]
+        const textBeforeCursor = text.slice(0, cursorPos)
+        const cursorX = ctx.measureText(textBeforeCursor).width + 5
 
         ctx.beginPath()
         ctx.moveTo(cursorX, 5)
         ctx.lineTo(cursorX, height - 5)
+        ctx.strokeStyle = 'black'
+        ctx.lineWidth = 2
         ctx.stroke()
       }
 

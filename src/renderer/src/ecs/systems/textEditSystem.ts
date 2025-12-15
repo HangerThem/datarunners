@@ -4,7 +4,7 @@ import { UIText } from '../components/uiText'
 import { ExtendedWorld } from '../world'
 import { System } from './system'
 import { editString, getString } from '../../utils/stringAllocator'
-import { getCharFromKeyId, getKeyId } from '../../utils/key'
+import { getKeyId } from '../../utils/key'
 
 export class TextEditSystem implements System {
   private textInputQuery = defineQuery([TextInput, UIText])
@@ -22,8 +22,7 @@ export class TextEditSystem implements System {
       const id = UIText.textId[e]
       let text = getString(id)
 
-      for (const charId of world.input.activeKeys) {
-        const char = getCharFromKeyId(charId)
+      for (const char of world.input.textInputBuffer) {
         if (char && text.length < TextInput.maxLength[e]) {
           const cursorPos = TextInput.cursor[e]
           text = text.slice(0, cursorPos) + char + text.slice(cursorPos)
@@ -33,8 +32,12 @@ export class TextEditSystem implements System {
 
       if (world.input.keysPressed[getKeyId('Backspace')] && text.length > 0) {
         const cursorPos = TextInput.cursor[e]
+        if (cursorPos === 0) continue
         text = text.slice(0, cursorPos - 1) + text.slice(cursorPos)
         TextInput.cursor[e] = Math.max(0, cursorPos - 1)
+      } else if (world.input.keysPressed[getKeyId('Delete')] && text.length > 0) {
+        const cursorPos = TextInput.cursor[e]
+        text = text.slice(0, cursorPos) + text.slice(cursorPos + 1)
       }
 
       if (world.input.keysPressed[getKeyId('ArrowLeft')]) {

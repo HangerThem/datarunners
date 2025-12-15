@@ -13,6 +13,7 @@ export interface InputResource {
   holdTimes: Float32Array
 
   activeKeys: Set<number>
+  textInputBuffer: string[]
 }
 
 export interface MousePosition {
@@ -46,7 +47,8 @@ world.input = {
   keysPressed: new Uint8Array(MAX_KEYS),
   keysReleased: new Uint8Array(MAX_KEYS),
   holdTimes: new Float32Array(MAX_KEYS),
-  activeKeys: new Set<number>()
+  activeKeys: new Set<number>(),
+  textInputBuffer: []
 }
 world.mousePosition = { x: 0, y: 0 }
 
@@ -75,12 +77,20 @@ function resizeHandler(): void {
   world.renderer.height = canvas.height
 }
 
-function keydownHandler(e: KeyboardEvent): void {
+function preventDefaultHandler(e: Event): void {
   e.preventDefault()
   e.stopPropagation()
   e.stopImmediatePropagation()
+}
+
+function keydownHandler(e: KeyboardEvent): void {
+  preventDefaultHandler(e)
 
   const key = getKeyId(e.code)
+
+  if (e.key.length === 1) {
+    world.input.textInputBuffer.push(e.key)
+  }
 
   if (!world.input.keysDown[key]) {
     world.input.keysDown[key] = 1
@@ -90,9 +100,7 @@ function keydownHandler(e: KeyboardEvent): void {
 }
 
 function keyupHandler(e: KeyboardEvent): void {
-  e.preventDefault()
-  e.stopPropagation()
-  e.stopImmediatePropagation()
+  preventDefaultHandler(e)
 
   const key = getKeyId(e.code)
 
@@ -115,9 +123,7 @@ function blurHandler(): void {
 }
 
 function mousedownHandler(e: MouseEvent): void {
-  e.preventDefault()
-  e.stopPropagation()
-  e.stopImmediatePropagation()
+  preventDefaultHandler(e)
 
   const code = mouseButtonToCode(e.button)
   if (!code) return
@@ -132,9 +138,7 @@ function mousedownHandler(e: MouseEvent): void {
 }
 
 function mouseupHandler(e: MouseEvent): void {
-  e.preventDefault()
-  e.stopPropagation()
-  e.stopImmediatePropagation()
+  preventDefaultHandler(e)
 
   const code = mouseButtonToCode(e.button)
   if (!code) return
