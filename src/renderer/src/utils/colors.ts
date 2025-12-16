@@ -43,3 +43,38 @@ export function colorToCss(color: number): string {
 
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
+
+export function blendColors(colorA: number, colorB: number, t: number): number {
+  const aA = (colorA >>> 24) & 255
+  const rA = (colorA >>> 16) & 255
+  const gA = (colorA >>> 8) & 255
+  const bA = colorA & 255
+
+  const aB = (colorB >>> 24) & 255
+  const rB = (colorB >>> 16) & 255
+  const gB = (colorB >>> 8) & 255
+  const bB = colorB & 255
+
+  const a = Math.round(aA + (aB - aA) * t)
+  const r = Math.round(rA + (rB - rA) * t)
+  const g = Math.round(gA + (gB - gA) * t)
+  const b = Math.round(bA + (bB - bA) * t)
+
+  return rgba(r, g, b, a)
+}
+
+export function setAlpha(color: number, alpha: number): number {
+  const r = (color >>> 16) & 255
+  const g = (color >>> 8) & 255
+  const b = color & 255
+
+  return rgba(r, g, b, alpha)
+}
+
+export function getAlpha(color: number): number {
+  return (color >>> 24) & 255
+}
+
+export function validateColor(color: number): boolean {
+  return Number.isInteger(color) && color >= 0 && color <= 0xffffffff
+}

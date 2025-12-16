@@ -1,5 +1,8 @@
 import { world } from '../ecs/world'
 
+const KEYPRESS_DELAY_FIRST = 150
+const KEYPRESS_DELAY = 100
+
 const keyMap = new Map<string, number>()
 const reverseKeyMap = new Map<number, string>()
 let nextKeyId = 0
@@ -18,50 +21,16 @@ export function getKeyCode(id: number): string | undefined {
   return reverseKeyMap.get(id)
 }
 
-export function getCharFromKeyId(keyId: number): string | null {
-  const code = getKeyCode(keyId)
-  if (!code) return null
-
-  if (code.startsWith('Key') && code.length === 4) {
-    const char = code.charAt(3)
-    if (
-      world.input.keysDown[getKeyId('ShiftLeft')] ||
-      world.input.keysDown[getKeyId('ShiftRight')]
-    ) {
-      return char.toUpperCase()
-    }
-    return char.toLowerCase()
+export function isKeyActivated(keyId: number): boolean {
+  if (
+    world.input.keysPressed[keyId] ||
+    (world.input.holdTimes[keyId] > KEYPRESS_DELAY_FIRST &&
+      world.input.holdTimes[keyId] % KEYPRESS_DELAY < 20)
+  ) {
+    return true
   }
 
-  if (code.startsWith('Digit') && code.length === 6) {
-    return code.charAt(5)
-  }
-
-  if (code.startsWith('Numpad') && code.length === 7) {
-    return code.charAt(6)
-  }
-
-  const specialChars: Record<string, string> = {
-    Space: ' ',
-    Period: '.',
-    Comma: ',',
-    Slash: '/',
-    Backslash: '\\',
-    BracketLeft: '[',
-    BracketRight: ']',
-    Semicolon: ';',
-    Quote: "'",
-    Backquote: '`',
-    Minus: '-',
-    Equal: '=',
-    NumpadAdd: '+',
-    NumpadSubtract: '-',
-    NumpadMultiply: '*',
-    NumpadDivide: '/',
-    NumpadDecimal: '.'
-  }
-
-  return specialChars[code] ?? null
+  return false
 }
 
 export function mouseButtonToCode(button: number): string | undefined {

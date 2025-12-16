@@ -4,7 +4,7 @@ import { UIText } from '../components/ui/uiText'
 import { ExtendedWorld } from '../world'
 import { System } from './system'
 import { editString, getString } from '../../utils/stringAllocator'
-import { getKeyId } from '../../utils/key'
+import { getKeyId, isKeyActivated } from '../../utils/key'
 
 export class TextEditSystem implements System {
   private textInputQuery = defineQuery([TextInput, UIText])
@@ -30,32 +30,19 @@ export class TextEditSystem implements System {
         }
       }
 
-      if (
-        (world.input.keysPressed[getKeyId('Backspace')] ||
-          (world.input.holdTimes[getKeyId('Backspace')] > 150 &&
-            world.input.holdTimes[getKeyId('Backspace')] % 100 < 20)) &&
-        text.length > 0
-      ) {
+      if (isKeyActivated(getKeyId('Backspace')) && text.length > 0) {
         const cursorPos = TextInput.cursor[e]
         if (cursorPos === 0) continue
         text = text.slice(0, cursorPos - 1) + text.slice(cursorPos)
         TextInput.cursor[e] = Math.max(0, cursorPos - 1)
-      } else if (world.input.keysPressed[getKeyId('Delete')] && text.length > 0) {
+      } else if (isKeyActivated(getKeyId('Delete')) && text.length > 0) {
         const cursorPos = TextInput.cursor[e]
         text = text.slice(0, cursorPos) + text.slice(cursorPos + 1)
       }
 
-      if (
-        world.input.keysPressed[getKeyId('ArrowLeft')] ||
-        (world.input.holdTimes[getKeyId('ArrowLeft')] > 150 &&
-          world.input.holdTimes[getKeyId('ArrowLeft')] % 100 < 20)
-      ) {
+      if (isKeyActivated(getKeyId('ArrowLeft'))) {
         TextInput.cursor[e] = Math.max(0, TextInput.cursor[e] - 1)
-      } else if (
-        world.input.keysPressed[getKeyId('ArrowRight')] ||
-        (world.input.holdTimes[getKeyId('ArrowRight')] > 150 &&
-          world.input.holdTimes[getKeyId('ArrowRight')] % 100 < 20)
-      ) {
+      } else if (isKeyActivated(getKeyId('ArrowRight'))) {
         TextInput.cursor[e] = Math.min(text.length, TextInput.cursor[e] + 1)
       }
 

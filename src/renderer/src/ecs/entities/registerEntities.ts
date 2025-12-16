@@ -6,6 +6,7 @@ import { UIRenderable } from '../components/ui/uiRenderable'
 import { UIPosition } from '../components/ui/uiPosition'
 import { UITexture } from '../components/ui/uiTexture'
 import { Image } from '../components/image'
+import { UIButtonSchema } from '../../types/button.types'
 
 export function registerEntities(world: ExtendedWorld): void {
   const loading = addEntity(world)
@@ -27,63 +28,60 @@ export function registerEntities(world: ExtendedWorld): void {
   UITexture.textureSizeX[loading] = 1024
   UITexture.textureSizeY[loading] = 512
 
-  createButtonEntity(
-    world,
-    'start_button_text',
-    world.renderer.width / 2 - (512 * 0.75) / 2,
-    400,
-    0.75,
-    'button_normal_medium',
-    512,
-    160,
-    0,
-    0,
-    hexColor('#FFFFFFFF'),
-    hexColor('#00FF00FF'),
-    hexColor('#00FF00FF'),
-    world.callbacks.registerCallback(() => {
+  const startButton = UIButtonSchema.parse({
+    textId: world.assets.getAssetId('start_button_text')!,
+    x: world.renderer.width / 2 - (512 * 0.75) / 2,
+    y: 400,
+    scale: 0.75,
+    textureId: world.assets.getAssetId('button_normal_medium')!,
+    textureSizeX: 512,
+    textureSizeY: 160,
+    foregroundColor: hexColor('#FFFFFFFF'),
+    hoverForegroundColor: hexColor('#00FF00FF'),
+    pressedForegroundColor: hexColor('#00FF00FF'),
+    callbackId: world.callbacks.registerCallback(() => {
       world.audio.playSound('click_sound')
       world.scenes.loadScene('saves')
     })
-  )
+  })
 
-  createButtonEntity(
-    world,
-    'settings_button_text',
-    world.renderer.width / 2 - (512 * 0.75) / 2,
-    560,
-    0.75,
-    'button_normal_medium',
-    512,
-    160,
-    0,
-    0,
-    hexColor('#FFFFFFFF'),
-    hexColor('#00FF00FF'),
-    hexColor('#00FF00FF'),
-    world.callbacks.registerCallback(() => {
+  createButtonEntity(startButton)
+
+  const settingsButton = UIButtonSchema.parse({
+    textId: world.assets.getAssetId('settings_button_text')!,
+    x: world.renderer.width / 2 - (512 * 0.75) / 2,
+    y: 560,
+    scale: 0.75,
+    textureId: world.assets.getAssetId('button_normal_medium')!,
+    textureSizeX: 512,
+    textureSizeY: 160,
+    foregroundColor: hexColor('#FFFFFFFF'),
+    hoverForegroundColor: hexColor('#00FF00FF'),
+    pressedForegroundColor: hexColor('#00FF00FF'),
+    callbackId: world.callbacks.registerCallback(() => {
       world.audio.playSound('click_sound')
       world.scenes.loadScene('settings')
     })
-  )
+  })
 
-  createButtonEntity(
-    world,
-    'quit_button_text',
-    world.renderer.width / 2 - (512 * 0.75) / 2,
-    720,
-    0.75,
-    'button_danger_medium',
-    512,
-    160,
-    0,
-    0,
-    hexColor('#FFFFFFFF'),
-    hexColor('#FF3B5AFF'),
-    hexColor('#FF3B5AFF'),
-    world.callbacks.registerCallback(() => {
+  createButtonEntity(settingsButton)
+
+  const quitButton = UIButtonSchema.parse({
+    textId: world.assets.getAssetId('quit_button_text')!,
+    x: world.renderer.width / 2 - (512 * 0.75) / 2,
+    y: 720,
+    scale: 0.75,
+    textureId: world.assets.getAssetId('button_danger_medium')!,
+    textureSizeX: 512,
+    textureSizeY: 160,
+    foregroundColor: hexColor('#FFFFFFFF'),
+    hoverForegroundColor: hexColor('#FF3B5AFF'),
+    pressedForegroundColor: hexColor('#FF3B5AFF'),
+    callbackId: world.callbacks.registerCallback(() => {
       world.audio.playSound('click_sound')
       window.close()
     })
-  )
+  })
+
+  createButtonEntity(quitButton)
 }

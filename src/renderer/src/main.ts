@@ -1,6 +1,7 @@
 import { world } from './ecs/world'
 import { LoadingScene } from './scenes/LoadingScene'
 import { MainMenuScene } from './scenes/MainMenuScene'
+import { NewGameScene } from './scenes/NewGameScene'
 import { SavesScene } from './scenes/SavesScene'
 import { SettingsScene } from './scenes/SettingsScene'
 
@@ -27,6 +28,7 @@ export async function initGameEngine(): Promise<void> {
   world.scenes.registerScene('main_menu', new MainMenuScene())
   world.scenes.registerScene('settings', new SettingsScene())
   world.scenes.registerScene('saves', new SavesScene())
+  world.scenes.registerScene('new_game', new NewGameScene())
 
   await world.scenes.loadScene('loading')
 

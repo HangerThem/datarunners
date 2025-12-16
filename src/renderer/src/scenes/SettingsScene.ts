@@ -17,6 +17,7 @@ import { TextInput } from '../ecs/components/textInput'
 import { allocString } from '../utils/stringAllocator'
 import { TextEditSystem } from '../ecs/systems/textEditSystem'
 import { UIFont } from '../ecs/components/ui/uiFont'
+import { UIButtonSchema } from '../types/button.types'
 
 interface GameSettings {
   graphics: {
@@ -68,45 +69,43 @@ export class SettingsScene implements Scene {
       }
     ])
 
-    createButtonEntity(
-      world,
-      'back_button_text',
-      world.renderer.width / 2 - (512 * 0.75) / 2,
-      256,
-      0.75,
-      'button_normal_medium',
-      512,
-      160,
-      0,
-      0,
-      hexColor('#FFFFFFFF'),
-      hexColor('#00FF00FF'),
-      hexColor('#00FF00FF'),
-      world.callbacks.registerCallback(() => {
+    const backButton = UIButtonSchema.parse({
+      textId: world.assets.getAssetId('back_button_text')!,
+      x: world.renderer.width / 2 - (512 * 0.75) / 2,
+      y: 256,
+      scale: 0.75,
+      textureId: world.assets.getAssetId('button_normal_medium')!,
+      textureSizeX: 512,
+      textureSizeY: 160,
+      foregroundColor: hexColor('#FFFFFFFF'),
+      hoverForegroundColor: hexColor('#00FF00FF'),
+      pressedForegroundColor: hexColor('#00FF00FF'),
+      callbackId: world.callbacks.registerCallback(() => {
         world.audio.playSound('click_sound')
         world.scenes.loadScene('main_menu')
       })
-    )
+    })
 
-    createButtonEntity(
-      world,
-      'save_button_text',
-      world.renderer.width / 2 - (512 * 0.75) / 2,
-      400,
-      0.75,
-      'button_normal_medium',
-      512,
-      160,
-      0,
-      0,
-      hexColor('#FFFFFFFF'),
-      hexColor('#00FF00FF'),
-      hexColor('#00FF00FF'),
-      world.callbacks.registerCallback(() => {
-        window.electron.ipcRenderer.send('settings:save', this.settingsData)
+    createButtonEntity(backButton)
+
+    const saveButton = UIButtonSchema.parse({
+      textId: world.assets.getAssetId('save_button_text')!,
+      x: world.renderer.width / 2 - (512 * 0.75) / 2,
+      y: 400,
+      scale: 0.75,
+      textureId: world.assets.getAssetId('button_normal_medium')!,
+      textureSizeX: 512,
+      textureSizeY: 160,
+      foregroundColor: hexColor('#FFFFFFFF'),
+      hoverForegroundColor: hexColor('#00FF00FF'),
+      pressedForegroundColor: hexColor('#00FF00FF'),
+      callbackId: world.callbacks.registerCallback(() => {
         world.audio.playSound('click_sound')
+        window.electron.ipcRenderer.send('settings:save', this.settingsData)
       })
-    )
+    })
+
+    createButtonEntity(saveButton)
 
     createCheckboxEntity(
       world,

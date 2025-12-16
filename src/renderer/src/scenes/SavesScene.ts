@@ -58,6 +58,8 @@ export class SavesScene implements Scene {
       addComponent(world, UIText, entity)
       addComponent(world, UIColor, entity)
       addComponent(world, UIButton, entity)
+      addComponent(world, UICallback, entity)
+      addComponent(world, UISelectable, entity)
 
       UIRenderable.visible[entity] = 1
       UIRenderable.width[entity] = 600
@@ -71,6 +73,11 @@ export class SavesScene implements Scene {
         UIText.textSource[entity] = 1
 
         UIColor.color[entity] = hexColor('#888888FF')
+
+        UICallback.onClick[entity] = world.callbacks.registerCallback(() => {
+          world.audio.playSound('click_sound')
+          world.scenes.loadScene('new_game')
+        })
       } else {
         const save = this.saveData[i]
         const date = new Date(save.timestamp)
@@ -80,6 +87,13 @@ export class SavesScene implements Scene {
         UIText.textSource[entity] = 2
         UIColor.color[entity] = hexColor('#00ff00ff')
         UIRenderable.width[entity] = 450
+
+        UICallback.onClick[entity] = world.callbacks.registerCallback(() => {
+          world.audio.playSound('click_sound')
+          window.electron.ipcRenderer.invoke('save:load', save.slot).then(() => {
+            world.scenes.loadScene('main_game')
+          })
+        })
 
         const deleteButton = addEntity(world)
 
