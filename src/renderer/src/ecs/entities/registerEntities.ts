@@ -28,11 +28,12 @@ export function registerEntities(world: ExtendedWorld): void {
   UITexture.textureSizeX[loading] = 1024
   UITexture.textureSizeY[loading] = 512
 
-  const startButton = UIButtonSchema.parse({
+  const startButton = UIButtonSchema.safeDecode({
     textId: world.assets.getAssetId('start_button_text')!,
     x: world.renderer.width / 2 - (512 * 0.75) / 2,
     y: 400,
-    scale: 0.75,
+    width: 512 * 0.75,
+    height: 160 * 0.75,
     textureId: world.assets.getAssetId('button_normal_medium')!,
     textureSizeX: 512,
     textureSizeY: 160,
@@ -45,13 +46,19 @@ export function registerEntities(world: ExtendedWorld): void {
     })
   })
 
-  createButtonEntity(startButton)
+  if (!startButton.success) {
+    console.error('Failed to create start button:', startButton.error)
+    return
+  }
 
-  const settingsButton = UIButtonSchema.parse({
+  createButtonEntity(startButton.data)
+
+  const settingsButton = UIButtonSchema.safeDecode({
     textId: world.assets.getAssetId('settings_button_text')!,
     x: world.renderer.width / 2 - (512 * 0.75) / 2,
     y: 560,
-    scale: 0.75,
+    width: 512 * 0.75,
+    height: 160 * 0.75,
     textureId: world.assets.getAssetId('button_normal_medium')!,
     textureSizeX: 512,
     textureSizeY: 160,
@@ -64,13 +71,19 @@ export function registerEntities(world: ExtendedWorld): void {
     })
   })
 
-  createButtonEntity(settingsButton)
+  if (!settingsButton.success) {
+    console.error('Failed to create settings button:', settingsButton.error)
+    return
+  }
 
-  const quitButton = UIButtonSchema.parse({
+  createButtonEntity(settingsButton.data)
+
+  const quitButton = UIButtonSchema.safeDecode({
     textId: world.assets.getAssetId('quit_button_text')!,
     x: world.renderer.width / 2 - (512 * 0.75) / 2,
     y: 720,
-    scale: 0.75,
+    width: 512 * 0.75,
+    height: 160 * 0.75,
     textureId: world.assets.getAssetId('button_danger_medium')!,
     textureSizeX: 512,
     textureSizeY: 160,
@@ -83,5 +96,10 @@ export function registerEntities(world: ExtendedWorld): void {
     })
   })
 
-  createButtonEntity(quitButton)
+  if (!quitButton.success) {
+    console.error('Failed to create quit button:', quitButton.error)
+    return
+  }
+
+  createButtonEntity(quitButton.data)
 }

@@ -2,53 +2,54 @@ import { addEntity, addComponent } from 'bitecs'
 import { UIPosition } from '../components/ui/uiPosition'
 import { UIRenderable } from '../components/ui/uiRenderable'
 import { UICallback } from '../components/ui/uiCallback'
-import { UIButton } from '../components/uiButton'
+import { UIButton } from '../components/ui/uiButton'
 import { world } from '../world'
 import { UITexture } from '../components/ui/uiTexture'
 import { UIText } from '../components/ui/uiText'
 import { UISelectable } from '../components/ui/uiSelectable'
-import { UIButtonSchema, UIButtonType } from '../../types/button.types'
+import { UIButtonType } from '../../types/button.types'
+import { UIColor } from '../components/ui/uiColor'
 
 export function createButtonEntity(params: UIButtonType): number {
-  const validatedButton = UIButtonSchema.safeParse(params)
-
-  if (!validatedButton.success) {
-    throw new Error(`Invalid UIButton parameters: ${validatedButton.error.message}`)
-  }
-
   const entity = addEntity(world)
 
-  addComponent(world, UIButton, entity)
-  addComponent(world, UIRenderable, entity)
   addComponent(world, UIPosition, entity)
-  addComponent(world, UICallback, entity)
-  addComponent(world, UITexture, entity)
+  addComponent(world, UIRenderable, entity)
   addComponent(world, UIText, entity)
+  addComponent(world, UIButton, entity)
+  addComponent(world, UICallback, entity)
   addComponent(world, UISelectable, entity)
 
-  UIPosition.x[entity] = validatedButton.data.x
-  UIPosition.y[entity] = validatedButton.data.y
+  UIPosition.x[entity] = params.x
+  UIPosition.y[entity] = params.y
 
-  UIRenderable.width[entity] = validatedButton.data.textureSizeX * validatedButton.data.scale
-  UIRenderable.height[entity] = validatedButton.data.textureSizeY * validatedButton.data.scale
+  UIRenderable.width[entity] = params.width
+  UIRenderable.height[entity] = params.height
   UIRenderable.visible[entity] = 1
-  UIText.textId[entity] = validatedButton.data.textId
-  UIText.textSource[entity] = 1
 
-  UICallback.onClick[entity] = validatedButton.data.callbackId
+  UIText.textId[entity] = params.textId
+  UIText.textSource[entity] = 0
 
-  UITexture.textureId[entity] = validatedButton.data.textureId
-  UITexture.textureSizeX[entity] = validatedButton.data.textureSizeX
-  UITexture.textureSizeY[entity] = validatedButton.data.textureSizeY
-  UITexture.textureOffsetX[entity] = validatedButton.data.textureOffsetX
-  UITexture.textureOffsetY[entity] = validatedButton.data.textureOffsetY
+  UIButton.foreground[entity] = params.foregroundColor
+  UIButton.foregroundHover[entity] = params.hoverForegroundColor
+  UIButton.foregroundPressed[entity] = params.pressedForegroundColor
 
-  UIButton.foreground[entity] = validatedButton.data.foregroundColor
-  UIButton.foregroundHover[entity] = validatedButton.data.hoverForegroundColor!
-  UIButton.foregroundPressed[entity] = validatedButton.data.pressedForegroundColor!
+  UICallback.onClick[entity] = params.callbackId
 
   UISelectable.hovered[entity] = 0
   UISelectable.pressed[entity] = 0
+
+  if (params.textureId) {
+    addComponent(world, UITexture, entity)
+    UITexture.textureId[entity] = params.textureId
+    UITexture.textureSizeX[entity] = params.textureSizeX
+    UITexture.textureSizeY[entity] = params.textureSizeY
+    UITexture.textureOffsetX[entity] = params.textureOffsetX
+    UITexture.textureOffsetY[entity] = params.textureOffsetY
+  } else {
+    addComponent(world, UIColor, entity)
+    UIColor.color[entity] = params.backgroundColor
+  }
 
   return entity
 }

@@ -1,4 +1,4 @@
-import { Scene } from './Scene'
+import { Scene, SceneAssets } from './Scene'
 import { world } from '../ecs/world'
 import { RenderSystem } from '../ecs/systems/renderSystem'
 import { System } from '../ecs/systems/system'
@@ -6,18 +6,17 @@ import { UISystem } from '../ecs/systems/uiSystem'
 import { CursorSystem } from '../ecs/systems/cursorSystem'
 import { InputSystem } from '../ecs/systems/inputSystem'
 import { hexColor } from '../utils/colors'
-import { addComponent, addEntity, getAllEntities, removeEntity } from 'bitecs'
+import { addComponent, addEntity } from 'bitecs'
 import { UIRenderable } from '../ecs/components/ui/uiRenderable'
 import { UIPosition } from '../ecs/components/ui/uiPosition'
 import { UIText } from '../ecs/components/ui/uiText'
 import { allocString } from '../utils/stringAllocator'
 import { UISelectable } from '../ecs/components/ui/uiSelectable'
-import { TextEditSystem } from '../ecs/systems/textEditSystem'
-import { TextInput } from '../ecs/components/textInput'
+import { TextInputSystem } from '../ecs/systems/textInputSystem'
+import { UITextInput } from '../ecs/components/ui/uiTextInput'
 import { UIFont } from '../ecs/components/ui/uiFont'
 import { createCheckboxEntity } from '../ecs/entities/checkbox'
-import { UICheckbox } from '../ecs/components/ui/uiCheckbox'
-import { UICallback } from '../ecs/components/ui/uiCallback'
+import { UICheckboxSchema } from '../types/checkbox.types'
 
 enum Difficulty {
   EASY = 'easy',
@@ -27,31 +26,42 @@ enum Difficulty {
 
 interface NewGameData {
   difficulty: Difficulty
-  seed: string
+  seed: number
 }
 
 export class NewGameScene implements Scene {
   private systems: System[]
-  private newGameData: NewGameData = { difficulty: Difficulty.NORMAL, seed: '' }
+  private newGameData: NewGameData = {
+    difficulty: Difficulty.NORMAL,
+    seed: Math.floor(Math.random() * 1000000)
+  }
+  private assets: SceneAssets = {
+    images: [{ name: 'checkbox_normal', src: 'ui/checkbox_normal.png' }],
+    fonts: [{ name: 'chakra_petch', src: 'ChakraPetch.ttf' }],
+    audio: [{ name: 'click_sound', src: 'click.mp3' }],
+    texts: []
+  }
 
   constructor() {
     this.systems = [
       new UISystem(),
       new CursorSystem(),
-      new TextEditSystem(),
+      new TextInputSystem(),
       new InputSystem(),
       new RenderSystem()
     ]
   }
 
   async load(): Promise<void> {
+    await world.assets.loadSceneAssets(this.assets)
+
     const inputEntity = addEntity(world)
 
     addComponent(world, UIText, inputEntity)
     addComponent(world, UIPosition, inputEntity)
     addComponent(world, UIRenderable, inputEntity)
     addComponent(world, UISelectable, inputEntity)
-    addComponent(world, TextInput, inputEntity)
+    addComponent(world, UITextInput, inputEntity)
     addComponent(world, UIFont, inputEntity)
 
     UIPosition.x[inputEntity] = world.renderer.width / 2 - 100
@@ -61,55 +71,47 @@ export class NewGameScene implements Scene {
     UIRenderable.height[inputEntity] = 40
     UIRenderable.visible[inputEntity] = 1
 
-    UIText.textId[inputEntity] = allocString('')
-    UIText.textSource[inputEntity] = 2
+    UIText.textId[inputEntity] = world.assets.addTextAsset(
+      'seed_input_label',
+      'Enter Seed (Numbers Only):'
+    )
+    UIText.textSource[inputEntity] = 0
 
-    TextInput.cursor[inputEntity] = 0
-    TextInput.maxLength[inputEntity] = 256
-    TextInput.focused[inputEntity] = 0
+    UITextInput.maxLength[inputEntity] = 8
+    UITextInput.numeric[inputEntity] = 1
+    UITextInput.cursor[inputEntity] = this.newGameData.seed.toString().length
+    UITextInput.textId[inputEntity] = allocString(this.newGameData.seed.toString())
 
     UIFont.fontSize[inputEntity] = 24
     UIFont.fontFamilyId[inputEntity] = world.assets.getAssetId('chakra_petch')!
     UIFont.color[inputEntity] = hexColor('#000000ff')
 
-    const checkboxs: number[] = []
+    const checkboxGroup = addEntity(world)
 
     for (const diff of [Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD]) {
-      checkboxs.push(
-        createCheckboxEntity(
-          world,
-          'checkbox_normal',
-          world.renderer.width / 2 - (512 * 0.75) / 2,
-          diff === Difficulty.EASY ? 400 : diff === Difficulty.NORMAL ? 500 : 600,
-          0.5,
-          64,
-          64,
-          0,
-          0,
-          this.newGameData.difficulty === diff,
-          -1,
-          world.assets.addTextAsset(
-            `${diff}_checkbox_text`,
-            diff.charAt(0).toUpperCase() + diff.slice(1)
-          )
-        )
-      )
-    }
-
-    for (const checkbox of checkboxs) {
-      UICallback.onClick[checkbox] = world.callbacks.registerCallback(() => {
-        world.audio.playSound('click_sound')
-        for (let i = 0; i < checkboxs.length; i++) {
-          const cb = checkboxs[i]
-          if (cb === checkbox) {
-            this.newGameData.difficulty =
-              i === 0 ? Difficulty.EASY : i === 1 ? Difficulty.NORMAL : Difficulty.HARD
-            UICheckbox.checked[cb] = 1
-          } else {
-            UICheckbox.checked[cb] = 0
-          }
-        }
+      const checkboxEntity = UICheckboxSchema.safeDecode({
+        x: world.renderer.width / 2 - (512 * 0.75) / 2,
+        y: diff === Difficulty.EASY ? 400 : diff === Difficulty.NORMAL ? 500 : 600,
+        width: 32,
+        height: 32,
+        textureId: world.assets.getAssetId('checkbox_normal')!,
+        textureSizeX: 64,
+        textureSizeY: 64,
+        checked: this.newGameData.difficulty === diff,
+        callbackId: world.callbacks.registerCallback(() => {
+          world.audio.playSound('click_sound')
+          this.newGameData.difficulty = diff
+        }),
+        textId: world.assets.addTextAsset(
+          `${diff}_checkbox_text`,
+          diff.charAt(0).toUpperCase() + diff.slice(1)
+        ),
+        groupId: checkboxGroup
       })
+
+      if (checkboxEntity.success) {
+        createCheckboxEntity(checkboxEntity.data)
+      }
     }
   }
 
@@ -120,8 +122,6 @@ export class NewGameScene implements Scene {
   }
 
   async unload(): Promise<void> {
-    for (const entity of getAllEntities(world)) {
-      removeEntity(world, entity)
-    }
+    world.reset()
   }
 }

@@ -1,4 +1,4 @@
-import { createWorld, type IWorld } from 'bitecs'
+import { createWorld, getAllEntities, removeEntity, type IWorld } from 'bitecs'
 import { AssetsManager } from '../managers/assetsManager'
 import { CallbackManager } from '../managers/callbackManager'
 import { AudioManager } from '../managers/audioManager'
@@ -14,6 +14,8 @@ export interface InputResource {
 
   activeKeys: Set<number>
   textInputBuffer: string[]
+
+  clearInputState(): void
 }
 
 export interface MousePosition {
@@ -36,11 +38,22 @@ export interface ExtendedWorld extends IWorld {
   callbacks: CallbackManager
   scenes: SceneManager
   cursor: CursorType
+
+  reset(): void
 }
 
 export const world: ExtendedWorld = createWorld() as ExtendedWorld
 
 const MAX_KEYS = 256
+
+function clearInputState(this: InputResource): void {
+  this.keysDown.fill(0)
+  this.keysPressed.fill(0)
+  this.keysReleased.fill(0)
+  this.holdTimes.fill(0)
+  this.activeKeys.clear()
+  this.textInputBuffer = []
+}
 
 world.input = {
   keysDown: new Uint8Array(MAX_KEYS),
@@ -48,8 +61,10 @@ world.input = {
   keysReleased: new Uint8Array(MAX_KEYS),
   holdTimes: new Float32Array(MAX_KEYS),
   activeKeys: new Set<number>(),
-  textInputBuffer: []
+  textInputBuffer: [],
+  clearInputState
 }
+
 world.mousePosition = { x: 0, y: 0 }
 
 world.assets = new AssetsManager()
@@ -167,3 +182,13 @@ window.addEventListener('blur', blurHandler)
 window.addEventListener('mousedown', mousedownHandler)
 window.addEventListener('mouseup', mouseupHandler)
 window.addEventListener('mousemove', mousemoveHandler)
+
+world.reset = function (): void {
+  for (const entity of getAllEntities(world)) {
+    removeEntity(world, entity)
+  }
+
+  this.callbacks.clearCallbacks()
+  this.input.clearInputState()
+  this.mousePosition = { x: 0, y: 0 }
+}

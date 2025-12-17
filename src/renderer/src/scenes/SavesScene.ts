@@ -1,4 +1,4 @@
-import { Scene } from './Scene'
+import { Scene, SceneAssets } from './Scene'
 import { world } from '../ecs/world'
 import { RenderSystem } from '../ecs/systems/renderSystem'
 import { System } from '../ecs/systems/system'
@@ -6,15 +6,10 @@ import { UISystem } from '../ecs/systems/uiSystem'
 import { CursorSystem } from '../ecs/systems/cursorSystem'
 import { InputSystem } from '../ecs/systems/inputSystem'
 import { hexColor } from '../utils/colors'
-import { addComponent, addEntity, getAllEntities, removeEntity } from 'bitecs'
-import { UIRenderable } from '../ecs/components/ui/uiRenderable'
-import { UIPosition } from '../ecs/components/ui/uiPosition'
-import { UIText } from '../ecs/components/ui/uiText'
-import { UIColor } from '../ecs/components/ui/uiColor'
 import { allocString } from '../utils/stringAllocator'
-import { UIButton } from '../ecs/components/uiButton'
-import { UICallback } from '../ecs/components/ui/uiCallback'
-import { UISelectable } from '../ecs/components/ui/uiSelectable'
+import { UIButtonSchema } from '../types/button.types'
+import { createButtonEntity } from '../ecs/entities/button'
+import { UIText } from '../ecs/components/ui/uiText'
 
 interface SaveData {
   slot: number
@@ -26,6 +21,21 @@ interface SaveData {
 export class SavesScene implements Scene {
   private systems: System[]
   private saveData: SaveData[] | null = null
+  private assets: SceneAssets = {
+    images: [],
+    fonts: [],
+    audio: [{ name: 'click_sound', src: 'click.mp3' }],
+    texts: [
+      {
+        name: 'empty_slot',
+        src: 'buttons/empty_slot.json'
+      },
+      {
+        name: 'delete_slot',
+        src: 'buttons/delete_slot.json'
+      }
+    ]
+  }
 
   constructor() {
     this.systems = [new UISystem(), new CursorSystem(), new InputSystem(), new RenderSystem()]
@@ -39,105 +49,78 @@ export class SavesScene implements Scene {
       return
     }
 
-    await world.assets.loadTexts([
-      {
-        name: 'empty_slot',
-        src: 'buttons/empty_slot.json'
-      },
-      {
-        name: 'delete_slot',
-        src: 'buttons/delete_slot.json'
-      }
-    ])
+    await world.assets.loadSceneAssets(this.assets)
 
     for (let i = 0; i < 3; i++) {
-      const entity = addEntity(world)
-
-      addComponent(world, UIRenderable, entity)
-      addComponent(world, UIPosition, entity)
-      addComponent(world, UIText, entity)
-      addComponent(world, UIColor, entity)
-      addComponent(world, UIButton, entity)
-      addComponent(world, UICallback, entity)
-      addComponent(world, UISelectable, entity)
-
-      UIRenderable.visible[entity] = 1
-      UIRenderable.width[entity] = 600
-      UIRenderable.height[entity] = 80
-
-      UIPosition.x[entity] = world.renderer.width / 2 - 300
-      UIPosition.y[entity] = 100 + i * 100
-
       if (i >= this.saveData.length!) {
-        UIText.textId[entity] = world.assets.getAssetId('empty_slot')!
-        UIText.textSource[entity] = 1
-
-        UIColor.color[entity] = hexColor('#888888FF')
-
-        UICallback.onClick[entity] = world.callbacks.registerCallback(() => {
-          world.audio.playSound('click_sound')
-          world.scenes.loadScene('new_game')
+        const newSaveButton = UIButtonSchema.safeDecode({
+          textId: world.assets.getAssetId('empty_slot')!,
+          x: world.renderer.width / 2 - 225,
+          y: 100 + i * 100,
+          width: 450,
+          height: 80,
+          callbackId: world.callbacks.registerCallback(() => {
+            world.audio.playSound('click_sound')
+            world.scenes.loadScene('new_game')
+          })
         })
+
+        if (!newSaveButton.success) {
+          console.error('Failed to create new save button:', newSaveButton.error)
+          continue
+        }
+
+        createButtonEntity(newSaveButton.data)
       } else {
         const save = this.saveData[i]
         const date = new Date(save.timestamp)
         const dateString = date.toLocaleString()
 
-        UIText.textId[entity] = allocString(`Save Slot ${save.slot}\nLast Played: ${dateString}`)
-        UIText.textSource[entity] = 2
-        UIColor.color[entity] = hexColor('#00ff00ff')
-        UIRenderable.width[entity] = 450
-
-        UICallback.onClick[entity] = world.callbacks.registerCallback(() => {
-          world.audio.playSound('click_sound')
-          window.electron.ipcRenderer.invoke('save:load', save.slot).then(() => {
-            world.scenes.loadScene('main_game')
+        const existingSaveButton = UIButtonSchema.safeDecode({
+          textId: allocString(`Save Slot ${save.slot}\nLast Played: ${dateString}`),
+          x: world.renderer.width / 2 - 300,
+          y: 100 + i * 100,
+          width: 400,
+          height: 80,
+          backgroundColor: hexColor('#2bba47ff'),
+          callbackId: world.callbacks.registerCallback(() => {
+            world.audio.playSound('click_sound')
+            window.electron.ipcRenderer.invoke('save:load', save.slot).then(() => {
+              world.scenes.loadScene('game')
+            })
           })
         })
 
-        const deleteButton = addEntity(world)
+        if (!existingSaveButton.success) {
+          console.error('Failed to create existing save button:', existingSaveButton.error)
+          continue
+        }
 
-        addComponent(world, UIRenderable, deleteButton)
-        addComponent(world, UIPosition, deleteButton)
-        addComponent(world, UIText, deleteButton)
-        addComponent(world, UIColor, deleteButton)
-        addComponent(world, UIButton, deleteButton)
-        addComponent(world, UICallback, deleteButton)
-        addComponent(world, UISelectable, deleteButton)
+        const createButtonId = createButtonEntity(existingSaveButton.data)
+        UIText.textSource[createButtonId] = 1
 
-        UIRenderable.visible[deleteButton] = 1
-        UIRenderable.width[deleteButton] = 100
-        UIRenderable.height[deleteButton] = 50
-
-        UIPosition.x[deleteButton] = world.renderer.width / 2 + 200
-        UIPosition.y[deleteButton] = 115 + i * 100
-
-        UIText.textId[deleteButton] = world.assets.getAssetId('delete_slot')!
-        UIText.textSource[deleteButton] = 1
-
-        UIColor.color[deleteButton] = hexColor('#FF0000FF')
-
-        UIButton.foreground[deleteButton] = hexColor('#FFFFFFFF')
-        UIButton.foregroundHover[deleteButton] = hexColor('#FFFFA5FF')
-        UIButton.foregroundPressed[deleteButton] = hexColor('#FFFF00FF')
-
-        UISelectable.hovered[deleteButton] = 0
-        UISelectable.pressed[deleteButton] = 0
-
-        UICallback.onClick[deleteButton] = world.callbacks.registerCallback(() => {
-          world.audio.playSound('click_sound')
-          window.electron.ipcRenderer.invoke('save:delete', save.slot).then(() => {
-            world.scenes.loadScene('saves')
+        const deleteButton = UIButtonSchema.safeDecode({
+          textId: world.assets.getAssetId('delete_slot')!,
+          x: world.renderer.width / 2 + 200,
+          y: 115 + i * 100,
+          width: 100,
+          height: 50,
+          backgroundColor: hexColor('#FF0000FF'),
+          callbackId: world.callbacks.registerCallback(() => {
+            world.audio.playSound('click_sound')
+            window.electron.ipcRenderer.invoke('save:delete', save.slot).then(() => {
+              world.scenes.loadScene('saves')
+            })
           })
         })
+
+        if (!deleteButton.success) {
+          console.error('Failed to create delete button:', deleteButton.error)
+          continue
+        }
+
+        createButtonEntity(deleteButton.data)
       }
-
-      UIButton.foreground[entity] = hexColor('#FFFFFFFF')
-      UIButton.foregroundHover[entity] = hexColor('#FFFFA5FF')
-      UIButton.foregroundPressed[entity] = hexColor('#FFFF00FF')
-
-      UISelectable.hovered[entity] = 0
-      UISelectable.pressed[entity] = 0
     }
   }
 
@@ -148,8 +131,6 @@ export class SavesScene implements Scene {
   }
 
   async unload(): Promise<void> {
-    for (const entity of getAllEntities(world)) {
-      removeEntity(world, entity)
-    }
+    world.reset()
   }
 }

@@ -7,8 +7,9 @@ import { System } from './system'
 import { UICheckbox } from '../components/ui/uiCheckbox'
 import { getKeyId } from '../../utils/key'
 import { UISelectable } from '../components/ui/uiSelectable'
-import { TextInput } from '../components/textInput'
-import { UIButton } from '../components/uiButton'
+import { UITextInput } from '../components/ui/uiTextInput'
+import { UIButton } from '../components/ui/uiButton'
+import { CheckboxGroup } from '../components/checkboxGroup'
 
 export class UISystem implements System {
   private sellectableQuery = defineQuery([UIPosition, UISelectable])
@@ -37,8 +38,8 @@ export class UISystem implements System {
       }
 
       if (!isHovered && world.input.keysDown[getKeyId('MouseLeft')]) {
-        if (hasComponent(world, TextInput, entity)) {
-          TextInput.focused[entity] = 0
+        if (hasComponent(world, UITextInput, entity)) {
+          UITextInput.focused[entity] = 0
         }
       }
 
@@ -56,13 +57,29 @@ export class UISystem implements System {
             world.callbacks.invokeCallback(callback)
           }
         } else if (hasComponent(world, UICheckbox, entity)) {
+          if (hasComponent(world, CheckboxGroup, entity)) {
+            const groupId = CheckboxGroup.groupId[entity]
+            for (const otherEntity of this.sellectableQuery(world)) {
+              if (
+                otherEntity !== entity &&
+                hasComponent(world, UICheckbox, otherEntity) &&
+                hasComponent(world, CheckboxGroup, otherEntity) &&
+                CheckboxGroup.groupId[otherEntity] === groupId
+              ) {
+                UICheckbox.checked[otherEntity] = 0
+              }
+            }
+            UICheckbox.checked[entity] = 1
+          } else {
+            UICheckbox.checked[entity] = UICheckbox.checked[entity] ? 0 : 1
+          }
+
           const callback = UICallback.onClick[entity]
-          UICheckbox.checked[entity] = UICheckbox.checked[entity] ? 0 : 1
           if (callback) {
             world.callbacks.invokeCallback(callback)
           }
-        } else if (hasComponent(world, TextInput, entity)) {
-          TextInput.focused[entity] = 1
+        } else if (hasComponent(world, UITextInput, entity)) {
+          UITextInput.focused[entity] = 1
         }
       }
     }

@@ -1,4 +1,4 @@
-import { Scene } from './Scene'
+import { Scene, SceneAssets } from './Scene'
 import { world } from '../ecs/world'
 import { RenderSystem } from '../ecs/systems/renderSystem'
 import { System } from '../ecs/systems/system'
@@ -7,28 +7,18 @@ import { UISystem } from '../ecs/systems/uiSystem'
 import { CursorSystem } from '../ecs/systems/cursorSystem'
 import { InputSystem } from '../ecs/systems/inputSystem'
 import { registerEntities } from '../ecs/entities/registerEntities'
-import { getAllEntities, removeEntity } from 'bitecs'
 
 export class MainMenuScene implements Scene {
   private systems: System[]
-
-  constructor() {
-    this.systems = [
-      new DialogSystem(),
-      new UISystem(),
-      new CursorSystem(),
-      new InputSystem(),
-      new RenderSystem()
-    ]
-  }
-
-  async load(): Promise<void> {
-    await world.assets.loadImages([
+  private assets: SceneAssets = {
+    images: [
       { name: 'button_normal_medium', src: 'ui/button_normal_medium.png' },
-      { name: 'button_danger_medium', src: 'ui/button_danger_medium.png' }
-    ])
-
-    await world.assets.loadTexts([
+      { name: 'button_danger_medium', src: 'ui/button_danger_medium.png' },
+      { name: 'splash', src: 'splash.png' }
+    ],
+    fonts: [{ name: 'chakra_petch', src: 'ChakraPetch.ttf' }],
+    audio: [{ name: 'click_sound', src: 'click.mp3' }],
+    texts: [
       {
         name: 'start_button_text',
         src: 'buttons/start.json'
@@ -41,11 +31,21 @@ export class MainMenuScene implements Scene {
         name: 'settings_button_text',
         src: 'buttons/settings.json'
       }
-    ])
+    ]
+  }
 
-    await world.assets.loadAudios([{ name: 'click_sound', src: 'click.mp3' }])
+  constructor() {
+    this.systems = [
+      new DialogSystem(),
+      new UISystem(),
+      new CursorSystem(),
+      new InputSystem(),
+      new RenderSystem()
+    ]
+  }
 
-    await world.assets.loadFonts([{ name: 'chakra_petch', src: 'ChakraPetch.ttf' }])
+  async load(): Promise<void> {
+    await world.assets.loadSceneAssets(this.assets)
 
     registerEntities(world)
   }
@@ -57,8 +57,6 @@ export class MainMenuScene implements Scene {
   }
 
   async unload(): Promise<void> {
-    for (const entity of getAllEntities(world)) {
-      removeEntity(world, entity)
-    }
+    world.reset()
   }
 }

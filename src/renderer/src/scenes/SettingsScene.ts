@@ -1,4 +1,4 @@
-import { Scene } from './Scene'
+import { Scene, SceneAssets } from './Scene'
 import { world } from '../ecs/world'
 import { RenderSystem } from '../ecs/systems/renderSystem'
 import { System } from '../ecs/systems/system'
@@ -7,17 +7,9 @@ import { CursorSystem } from '../ecs/systems/cursorSystem'
 import { InputSystem } from '../ecs/systems/inputSystem'
 import { createButtonEntity } from '../ecs/entities/button'
 import { hexColor } from '../utils/colors'
-import { addComponent, addEntity, getAllEntities, removeEntity } from 'bitecs'
 import { createCheckboxEntity } from '../ecs/entities/checkbox'
-import { UIText } from '../ecs/components/ui/uiText'
-import { UIPosition } from '../ecs/components/ui/uiPosition'
-import { UIRenderable } from '../ecs/components/ui/uiRenderable'
-import { UISelectable } from '../ecs/components/ui/uiSelectable'
-import { TextInput } from '../ecs/components/textInput'
-import { allocString } from '../utils/stringAllocator'
-import { TextEditSystem } from '../ecs/systems/textEditSystem'
-import { UIFont } from '../ecs/components/ui/uiFont'
 import { UIButtonSchema } from '../types/button.types'
+import { UICheckboxSchema } from '../types/checkbox.types'
 
 interface GameSettings {
   graphics: {
@@ -32,15 +24,37 @@ interface GameSettings {
 export class SettingsScene implements Scene {
   private systems: System[]
   private settingsData: GameSettings | null = null
+  private assets: SceneAssets = {
+    images: [
+      {
+        name: 'button_normal_medium',
+        src: 'ui/button_normal_medium.png'
+      },
+      {
+        name: 'checkbox_normal',
+        src: 'ui/checkbox_normal.png'
+      }
+    ],
+    fonts: [],
+    audio: [{ name: 'click_sound', src: 'click.mp3' }],
+    texts: [
+      {
+        name: 'back_button_text',
+        src: 'buttons/back.json'
+      },
+      {
+        name: 'save_button_text',
+        src: 'buttons/save.json'
+      },
+      {
+        name: 'fullscreen_checkbox_text',
+        src: 'checkboxes/fullscreen.json'
+      }
+    ]
+  }
 
   constructor() {
-    this.systems = [
-      new UISystem(),
-      new CursorSystem(),
-      new TextEditSystem(),
-      new InputSystem(),
-      new RenderSystem()
-    ]
+    this.systems = [new UISystem(), new CursorSystem(), new InputSystem(), new RenderSystem()]
   }
 
   async load(): Promise<void> {
@@ -51,33 +65,17 @@ export class SettingsScene implements Scene {
       return
     }
 
-    await world.assets.loadImages([
-      {
-        name: 'checkbox_normal',
-        src: 'ui/checkbox_normal.png'
-      }
-    ])
+    await world.assets.loadSceneAssets(this.assets)
 
-    await world.assets.loadTexts([
-      {
-        name: 'back_button_text',
-        src: 'buttons/back.json'
-      },
-      {
-        name: 'save_button_text',
-        src: 'buttons/save.json'
-      }
-    ])
-
-    const backButton = UIButtonSchema.parse({
+    const backButton = UIButtonSchema.safeDecode({
       textId: world.assets.getAssetId('back_button_text')!,
       x: world.renderer.width / 2 - (512 * 0.75) / 2,
       y: 256,
-      scale: 0.75,
-      textureId: world.assets.getAssetId('button_normal_medium')!,
+      width: 512 * 0.75,
+      height: 160 * 0.75,
+      textureId: world.assets.getAssetId('button_normal_medium'),
       textureSizeX: 512,
       textureSizeY: 160,
-      foregroundColor: hexColor('#FFFFFFFF'),
       hoverForegroundColor: hexColor('#00FF00FF'),
       pressedForegroundColor: hexColor('#00FF00FF'),
       callbackId: world.callbacks.registerCallback(() => {
@@ -86,17 +84,22 @@ export class SettingsScene implements Scene {
       })
     })
 
-    createButtonEntity(backButton)
+    if (!backButton.success) {
+      console.error('Failed to create back button:', backButton.error)
+      return
+    }
 
-    const saveButton = UIButtonSchema.parse({
-      textId: world.assets.getAssetId('save_button_text')!,
+    createButtonEntity(backButton.data)
+
+    const saveButton = UIButtonSchema.safeDecode({
+      textId: world.assets.getAssetId('save_button_text'),
       x: world.renderer.width / 2 - (512 * 0.75) / 2,
       y: 400,
-      scale: 0.75,
-      textureId: world.assets.getAssetId('button_normal_medium')!,
+      width: 512 * 0.75,
+      height: 160 * 0.75,
+      textureId: world.assets.getAssetId('button_normal_medium'),
       textureSizeX: 512,
       textureSizeY: 160,
-      foregroundColor: hexColor('#FFFFFFFF'),
       hoverForegroundColor: hexColor('#00FF00FF'),
       pressedForegroundColor: hexColor('#00FF00FF'),
       callbackId: world.callbacks.registerCallback(() => {
@@ -105,52 +108,35 @@ export class SettingsScene implements Scene {
       })
     })
 
-    createButtonEntity(saveButton)
+    if (!saveButton.success) {
+      console.error('Failed to create save button:', saveButton.error)
+      return
+    }
 
-    createCheckboxEntity(
-      world,
-      'checkbox_normal',
-      world.renderer.width / 2 - (512 * 0.75) / 2,
-      560,
-      0.5,
-      64,
-      64,
-      0,
-      0,
-      this.settingsData.graphics['fullscreen'] ? true : false,
-      world.callbacks.registerCallback(() => {
+    createButtonEntity(saveButton.data)
+
+    const fullscreenCheckbox = UICheckboxSchema.safeDecode({
+      textId: world.assets.getAssetId('fullscreen_checkbox_text'),
+      x: world.renderer.width / 2 - (512 * 0.75) / 2,
+      y: 560,
+      width: 32,
+      height: 32,
+      textureId: world.assets.getAssetId('checkbox_normal'),
+      textureSizeX: 64,
+      textureSizeY: 64,
+      checked: this.settingsData.graphics['fullscreen'] ? true : false,
+      callbackId: world.callbacks.registerCallback(() => {
         world.audio.playSound('click_sound')
         this.settingsData!.graphics['fullscreen'] = !this.settingsData!.graphics['fullscreen']
-      }),
-      world.assets.addTextAsset('fullscreen_checkbox_text', 'Fullscreen')
-    )
+      })
+    })
 
-    const inputEntity = addEntity(world)
+    if (!fullscreenCheckbox.success) {
+      console.error('Failed to create fullscreen checkbox:', fullscreenCheckbox.error)
+      return
+    }
 
-    addComponent(world, UIText, inputEntity)
-    addComponent(world, UIPosition, inputEntity)
-    addComponent(world, UIRenderable, inputEntity)
-    addComponent(world, UISelectable, inputEntity)
-    addComponent(world, TextInput, inputEntity)
-    addComponent(world, UIFont, inputEntity)
-
-    UIPosition.x[inputEntity] = world.renderer.width / 2 - 100
-    UIPosition.y[inputEntity] = 720
-
-    UIRenderable.width[inputEntity] = 200
-    UIRenderable.height[inputEntity] = 40
-    UIRenderable.visible[inputEntity] = 1
-
-    UIText.textId[inputEntity] = allocString('')
-    UIText.textSource[inputEntity] = 2
-
-    TextInput.cursor[inputEntity] = 0
-    TextInput.maxLength[inputEntity] = 256
-    TextInput.focused[inputEntity] = 0
-
-    UIFont.fontSize[inputEntity] = 24
-    UIFont.fontFamilyId[inputEntity] = world.assets.getAssetId('chakra_petch')!
-    UIFont.color[inputEntity] = hexColor('#000000ff')
+    createCheckboxEntity(fullscreenCheckbox.data)
   }
 
   update(dt: number): void {
@@ -160,8 +146,6 @@ export class SettingsScene implements Scene {
   }
 
   async unload(): Promise<void> {
-    for (const entity of getAllEntities(world)) {
-      removeEntity(world, entity)
-    }
+    world.reset()
   }
 }

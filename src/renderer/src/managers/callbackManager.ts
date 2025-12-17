@@ -19,4 +19,16 @@ export class CallbackManager {
       callback()
     }
   }
+
+  isValidCallback(id: number): boolean {
+    return this.callbacks.has(id)
+  }
+
+  unregisterCallback(id: number): void {
+    this.callbacks.delete(id)
+  }
+
+  clearCallbacks(): void {
+    this.callbacks.clear()
+  }
 }

@@ -1,49 +1,51 @@
 import { defineQuery } from 'bitecs'
-import { TextInput } from '../components/textInput'
-import { UIText } from '../components/ui/uiText'
+import { UITextInput } from '../components/ui/uiTextInput'
 import { ExtendedWorld } from '../world'
 import { System } from './system'
 import { editString, getString } from '../../utils/stringAllocator'
 import { getKeyId, isKeyActivated } from '../../utils/key'
 
-export class TextEditSystem implements System {
-  private textInputQuery = defineQuery([TextInput, UIText])
+export class TextInputSystem implements System {
+  private textInputQuery = defineQuery([UITextInput])
 
   update(world: ExtendedWorld, dt: number): ExtendedWorld {
-    return this.updateTextEdit(world, dt)
+    return this.updateTextInput(world, dt)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private updateTextEdit(world: ExtendedWorld, _dt: number): ExtendedWorld {
+  private updateTextInput(world: ExtendedWorld, _dt: number): ExtendedWorld {
     const ents = this.textInputQuery(world)
     for (const e of ents) {
-      if (!TextInput.focused[e]) continue
+      if (!UITextInput.focused[e]) continue
 
-      const id = UIText.textId[e]
+      const id = UITextInput.textId[e]
       let text = getString(id)
 
       for (const char of world.input.textInputBuffer) {
-        if (char && text.length < TextInput.maxLength[e]) {
-          const cursorPos = TextInput.cursor[e]
+        if (char && text.length < UITextInput.maxLength[e]) {
+          if (UITextInput.numeric[e] && (isNaN(Number(char)) || char === ' ')) {
+            continue
+          }
+          const cursorPos = UITextInput.cursor[e]
           text = text.slice(0, cursorPos) + char + text.slice(cursorPos)
-          TextInput.cursor[e]++
+          UITextInput.cursor[e]++
         }
       }
 
       if (isKeyActivated(getKeyId('Backspace')) && text.length > 0) {
-        const cursorPos = TextInput.cursor[e]
+        const cursorPos = UITextInput.cursor[e]
         if (cursorPos === 0) continue
         text = text.slice(0, cursorPos - 1) + text.slice(cursorPos)
-        TextInput.cursor[e] = Math.max(0, cursorPos - 1)
+        UITextInput.cursor[e] = Math.max(0, cursorPos - 1)
       } else if (isKeyActivated(getKeyId('Delete')) && text.length > 0) {
-        const cursorPos = TextInput.cursor[e]
+        const cursorPos = UITextInput.cursor[e]
         text = text.slice(0, cursorPos) + text.slice(cursorPos + 1)
       }
 
       if (isKeyActivated(getKeyId('ArrowLeft'))) {
-        TextInput.cursor[e] = Math.max(0, TextInput.cursor[e] - 1)
+        UITextInput.cursor[e] = Math.max(0, UITextInput.cursor[e] - 1)
       } else if (isKeyActivated(getKeyId('ArrowRight'))) {
-        TextInput.cursor[e] = Math.min(text.length, TextInput.cursor[e] + 1)
+        UITextInput.cursor[e] = Math.min(text.length, UITextInput.cursor[e] + 1)
       }
 
       editString(id, text)

@@ -1,5 +1,6 @@
 import { Howl } from 'howler'
 import { asset } from '../utils/assets'
+import { SceneAssets } from '../scenes/Scene'
 
 interface Asset {
   dataType: 'image' | 'audio' | 'text'
@@ -8,8 +9,44 @@ interface Asset {
 
 export class AssetsManager {
   private assets: Map<string, Asset>
+  private usage: Map<string, number> = new Map()
+
   constructor() {
     this.assets = new Map()
+  }
+
+  async loadSceneAssets(assets: SceneAssets): Promise<void> {
+    const required = new Set([
+      ...assets.images.map((a) => a.name),
+      ...assets.audio.map((a) => a.name),
+      ...assets.texts.map((a) => a.name),
+      ...assets.fonts.map((a) => a.name)
+    ])
+
+    required.forEach((name) => {
+      const count = this.usage.get(name) ?? 0
+      this.usage.set(name, count + 1)
+    })
+
+    for (const name of this.assets.keys()) {
+      if (!required.has(name)) {
+        const count = (this.usage.get(name) ?? 1) - 1
+        if (count <= 0) {
+          this.unloadAsset(name)
+          this.usage.delete(name)
+        } else {
+          this.usage.set(name, count)
+        }
+      }
+    }
+
+    await this.loadImages(assets.images.filter((a) => !this.assets.has(a.name)))
+
+    await this.loadFonts(assets.fonts.filter((a) => !this.assets.has(a.name)))
+
+    await this.loadAudios(assets.audio.filter((a) => !this.assets.has(a.name)))
+
+    await this.loadTexts(assets.texts.filter((a) => !this.assets.has(a.name)))
   }
 
   async loadImage(name: string, src: string): Promise<void> {
@@ -90,10 +127,10 @@ export class AssetsManager {
     return undefined
   }
 
-  getAssetId(name: string): number | undefined {
+  getAssetId(name: string): number {
     const keys = Array.from(this.assets.keys())
     const index = keys.indexOf(name)
-    return index !== -1 ? index : undefined
+    return index !== -1 ? index : -1
   }
 
   getAssetById<T>(id: number): T | undefined {
@@ -114,7 +151,24 @@ export class AssetsManager {
   }
 
   unloadAsset(name: string): void {
+    const asset = this.assets.get(name)
+    if (!asset) return
+
+    if (asset.dataType === 'audio') {
+      ;(asset.data as Howl).unload()
+    }
+
     this.assets.delete(name)
+  }
+
+  isValidAsset(id: number, type: 'image' | 'audio' | 'text'): boolean {
+    const keys = Array.from(this.assets.keys())
+    if (id >= 0 && id < keys.length) {
+      const name = keys[id]
+      const asset = this.assets.get(name)
+      return asset?.dataType === type
+    }
+    return false
   }
 
   unloadAll(): void {

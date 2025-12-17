@@ -3,7 +3,7 @@ import { UIPosition } from '../components/ui/uiPosition'
 import { world, type ExtendedWorld } from '../world'
 import { Dialog, DialogText } from '../components/dialog'
 import { getCurrentLineText } from '../../utils/text'
-import { UIButton } from '../components/uiButton'
+import { UIButton } from '../components/ui/uiButton'
 import { UIRenderable } from '../components/ui/uiRenderable'
 import { colorToCss } from '../../utils/colors'
 import { wrapText } from '../../utils/text'
@@ -16,7 +16,7 @@ import { Image } from '../components/image'
 import { getString } from '../../utils/stringAllocator'
 import { UIColor } from '../components/ui/uiColor'
 import { UISelectable } from '../components/ui/uiSelectable'
-import { TextInput } from '../components/textInput'
+import { UITextInput } from '../components/ui/uiTextInput'
 import { UIFont } from '../components/ui/uiFont'
 
 export class RenderSystem implements System {
@@ -26,7 +26,7 @@ export class RenderSystem implements System {
   private dialogQuery = defineQuery([UIPosition, Dialog])
   private checkboxQuery = defineQuery([UIPosition, UICheckbox])
   private imageQuery = defineQuery([UIPosition, Image])
-  private textInputQuery = defineQuery([UIPosition, TextInput])
+  private textInputQuery = defineQuery([UIPosition, UITextInput])
 
   constructor() {
     this.ctx = world.renderer.ctx
@@ -115,10 +115,10 @@ export class RenderSystem implements System {
       let text
 
       switch (UIText.textSource[entity]) {
-        case 1:
+        case 0:
           text = world.assets.getAssetById<string>(UIText.textId[entity]) || ''
           break
-        case 2:
+        case 1:
           text = getString(UIText.textId[entity])
           break
         default:
@@ -279,9 +279,17 @@ export class RenderSystem implements System {
       ctx.translate(x, y)
 
       ctx.fillStyle = 'white'
+
+      if (hasComponent(world, UIText, entity)) {
+        const labelText = world.assets.getAssetById<string>(UIText.textId[entity]) || ''
+        ctx.font = '16px chakra_petch'
+        ctx.textBaseline = 'bottom'
+        ctx.fillText(labelText, 0, -5)
+      }
+
       ctx.fillRect(0, 0, width, height)
 
-      ctx.strokeStyle = TextInput.focused[entity] ? 'blue' : 'gray'
+      ctx.strokeStyle = UITextInput.focused[entity] ? 'blue' : 'gray'
       ctx.lineWidth = 2
       ctx.strokeRect(0, 0, width, height)
 
@@ -295,18 +303,23 @@ export class RenderSystem implements System {
 
       ctx.textBaseline = 'middle'
 
-      const text = getString(UIText.textId[entity]) || ''
+      const text = getString(UITextInput.textId[entity]) || ''
 
       ctx.fillText(text, 5, height / 2, width - 10)
 
-      if (TextInput.focused[entity]) {
-        const cursorPos = TextInput.cursor[entity]
+      if (UITextInput.focused[entity]) {
+        const cursorPos = UITextInput.cursor[entity]
         const textBeforeCursor = text.slice(0, cursorPos)
         const cursorX = ctx.measureText(textBeforeCursor).width + 5
 
         ctx.beginPath()
-        ctx.moveTo(cursorX, 5)
-        ctx.lineTo(cursorX, height - 5)
+        if (hasComponent(world, UIFont, entity)) {
+          ctx.moveTo(cursorX, (height - UIFont.fontSize[entity]) / 2)
+          ctx.lineTo(cursorX, (height + UIFont.fontSize[entity]) / 2)
+        } else {
+          ctx.moveTo(cursorX, 5)
+          ctx.lineTo(cursorX, height - 5)
+        }
         ctx.strokeStyle = 'black'
         ctx.lineWidth = 2
         ctx.stroke()
