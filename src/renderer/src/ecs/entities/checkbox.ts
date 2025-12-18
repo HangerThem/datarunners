@@ -40,7 +40,7 @@ export function createCheckboxEntity(params: UICheckboxType): number {
   UISelectable.hovered[entity] = 0
   UISelectable.pressed[entity] = 0
 
-  UIText.textId[entity] = params.textId
+  UIText.textId[entity] = params.labelId
   UIText.textSource[entity] = 0
 
   if (params.groupId !== undefined) {

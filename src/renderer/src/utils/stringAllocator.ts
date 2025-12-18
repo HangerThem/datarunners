@@ -61,3 +61,9 @@ export function getString(handle: StringHandle): string {
 
   return StringPool[index]
 }
+
+export function clearStringPool(): void {
+  StringPool.length = 0
+  Generations.length = 0
+  FreeList.length = 0
+}

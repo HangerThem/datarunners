@@ -10,6 +10,7 @@ import { UISelectable } from '../components/ui/uiSelectable'
 import { UITextInput } from '../components/ui/uiTextInput'
 import { UIButton } from '../components/ui/uiButton'
 import { CheckboxGroup } from '../components/checkboxGroup'
+import { UIDropdown } from '../components/ui/uiDropdown'
 
 export class UISystem implements System {
   private sellectableQuery = defineQuery([UIPosition, UISelectable])
@@ -33,13 +34,20 @@ export class UISystem implements System {
 
       const isHovered = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height
 
-      if (isHovered) {
+      if (isHovered && hasComponent(world, UITextInput, entity)) {
+        world.cursor = 'text'
+      } else if (isHovered) {
         world.cursor = 'pointer'
       }
 
-      if (!isHovered && world.input.keysDown[getKeyId('MouseLeft')]) {
+      if (
+        (!isHovered && world.input.keysDown[getKeyId('MouseLeft')]) ||
+        world.input.keysDown[getKeyId('Escape')]
+      ) {
         if (hasComponent(world, UITextInput, entity)) {
           UITextInput.focused[entity] = 0
+        } else if (hasComponent(world, UIDropdown, entity)) {
+          UIDropdown.open[entity] = 0
         }
       }
 
@@ -80,6 +88,8 @@ export class UISystem implements System {
           }
         } else if (hasComponent(world, UITextInput, entity)) {
           UITextInput.focused[entity] = 1
+        } else if (hasComponent(world, UIDropdown, entity)) {
+          UIDropdown.open[entity] = UIDropdown.open[entity] ? 0 : 1
         }
       }
     }

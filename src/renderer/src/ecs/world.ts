@@ -5,6 +5,7 @@ import { AudioManager } from '../managers/audioManager'
 import { CursorType } from '../types/cursor'
 import { SceneManager } from '../managers/sceneManager'
 import { getKeyId, mouseButtonToCode } from '../utils/key'
+import { clearStringPool } from '../utils/stringAllocator'
 
 export interface InputResource {
   keysDown: Uint8Array
@@ -191,4 +192,5 @@ world.reset = function (): void {
   this.callbacks.clearCallbacks()
   this.input.clearInputState()
   this.mousePosition = { x: 0, y: 0 }
+  clearStringPool()
 }

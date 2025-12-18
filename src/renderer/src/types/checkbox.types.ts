@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { world } from '../ecs/world'
 
 export const UICheckboxSchema = z.object({
-  textId: z
+  labelId: z
     .number()
     .min(0, 'Text ID must be a valid asset ID')
     .refine((id) => world.assets.isValidAsset(id, 'text'), {

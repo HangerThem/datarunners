@@ -10,29 +10,26 @@ import { addComponent, addEntity } from 'bitecs'
 import { UIRenderable } from '../ecs/components/ui/uiRenderable'
 import { UIPosition } from '../ecs/components/ui/uiPosition'
 import { UIText } from '../ecs/components/ui/uiText'
-import { allocString } from '../utils/stringAllocator'
+import { allocString, editString } from '../utils/stringAllocator'
 import { UISelectable } from '../ecs/components/ui/uiSelectable'
 import { TextInputSystem } from '../ecs/systems/textInputSystem'
 import { UITextInput } from '../ecs/components/ui/uiTextInput'
 import { UIFont } from '../ecs/components/ui/uiFont'
-import { createCheckboxEntity } from '../ecs/entities/checkbox'
-import { UICheckboxSchema } from '../types/checkbox.types'
-
-enum Difficulty {
-  EASY = 'easy',
-  NORMAL = 'normal',
-  HARD = 'hard'
-}
+import { UIButtonSchema } from '../types/button.types'
+import { createButtonEntity } from '../ecs/entities/button'
+import { DifficultyOptions } from '../data/DifficultyOptions'
+import { UIDropdownSchema } from '../types/dropdown.types'
+import { createDropdownEntity } from '../ecs/entities/dropdown'
 
 interface NewGameData {
-  difficulty: Difficulty
+  difficulty: string | number
   seed: number
 }
 
 export class NewGameScene implements Scene {
   private systems: System[]
   private newGameData: NewGameData = {
-    difficulty: Difficulty.NORMAL,
+    difficulty: DifficultyOptions[1].value,
     seed: Math.floor(Math.random() * 1000000)
   }
   private assets: SceneAssets = {
@@ -86,33 +83,50 @@ export class NewGameScene implements Scene {
     UIFont.fontFamilyId[inputEntity] = world.assets.getAssetId('chakra_petch')!
     UIFont.color[inputEntity] = hexColor('#000000ff')
 
-    const checkboxGroup = addEntity(world)
-
-    for (const diff of [Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD]) {
-      const checkboxEntity = UICheckboxSchema.safeDecode({
-        x: world.renderer.width / 2 - (512 * 0.75) / 2,
-        y: diff === Difficulty.EASY ? 400 : diff === Difficulty.NORMAL ? 500 : 600,
-        width: 32,
-        height: 32,
-        textureId: world.assets.getAssetId('checkbox_normal')!,
-        textureSizeX: 64,
-        textureSizeY: 64,
-        checked: this.newGameData.difficulty === diff,
-        callbackId: world.callbacks.registerCallback(() => {
-          world.audio.playSound('click_sound')
-          this.newGameData.difficulty = diff
-        }),
-        textId: world.assets.addTextAsset(
-          `${diff}_checkbox_text`,
-          diff.charAt(0).toUpperCase() + diff.slice(1)
-        ),
-        groupId: checkboxGroup
+    const newSeedButton = UIButtonSchema.safeDecode({
+      textId: world.assets.addTextAsset('new_seed_button_text', 'New Seed'),
+      x: world.renderer.width / 2 + 120,
+      y: 720,
+      width: 120,
+      height: 40,
+      foregroundColor: hexColor('#FFFFFFFF'),
+      hoverForegroundColor: hexColor('#00FF00FF'),
+      pressedForegroundColor: hexColor('#00FF00FF'),
+      callbackId: world.callbacks.registerCallback(() => {
+        world.audio.playSound('click_sound')
+        this.newGameData.seed = Math.floor(Math.random() * 1000000)
+        editString(UITextInput.textId[inputEntity], this.newGameData.seed.toString())
+        UITextInput.cursor[inputEntity] = this.newGameData.seed.toString().length
       })
+    })
 
-      if (checkboxEntity.success) {
-        createCheckboxEntity(checkboxEntity.data)
-      }
+    if (!newSeedButton.success) {
+      console.error('Failed to create new seed button:', newSeedButton.error)
+      return
     }
+
+    createButtonEntity(newSeedButton.data)
+
+    const difficultyDropdown = UIDropdownSchema.safeDecode({
+      labelId: world.assets.addTextAsset('difficulty_dropdown_label', 'Select Difficulty:'),
+      x: world.renderer.width / 2 - 100,
+      y: 600,
+      width: 200,
+      height: 40,
+      selectedIndex: 1,
+      options: DifficultyOptions,
+      foregroundColor: hexColor('#FFFFFFFF'),
+      hoverForegroundColor: hexColor('#00FF00FF'),
+      pressedForegroundColor: hexColor('#00FF00FF'),
+      backgroundColor: hexColor('#CCCCCCFF')
+    })
+
+    if (!difficultyDropdown.success) {
+      console.error('Failed to create difficulty dropdown:', difficultyDropdown.error)
+      return
+    }
+
+    createDropdownEntity(difficultyDropdown.data)
   }
 
   update(dt: number): void {

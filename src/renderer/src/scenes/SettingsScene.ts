@@ -116,7 +116,7 @@ export class SettingsScene implements Scene {
     createButtonEntity(saveButton.data)
 
     const fullscreenCheckbox = UICheckboxSchema.safeDecode({
-      textId: world.assets.getAssetId('fullscreen_checkbox_text'),
+      labelId: world.assets.getAssetId('fullscreen_checkbox_text'),
       x: world.renderer.width / 2 - (512 * 0.75) / 2,
       y: 560,
       width: 32,

@@ -18,6 +18,8 @@ import { UIColor } from '../components/ui/uiColor'
 import { UISelectable } from '../components/ui/uiSelectable'
 import { UITextInput } from '../components/ui/uiTextInput'
 import { UIFont } from '../components/ui/uiFont'
+import { UIDropdown } from '../components/ui/uiDropdown'
+import { getDropdownOptions } from '../../utils/dropdown'
 
 export class RenderSystem implements System {
   private ctx: CanvasRenderingContext2D
@@ -27,6 +29,7 @@ export class RenderSystem implements System {
   private checkboxQuery = defineQuery([UIPosition, UICheckbox])
   private imageQuery = defineQuery([UIPosition, Image])
   private textInputQuery = defineQuery([UIPosition, UITextInput])
+  private dropdownQuery = defineQuery([UIPosition, UIDropdown])
 
   constructor() {
     this.ctx = world.renderer.ctx
@@ -42,6 +45,7 @@ export class RenderSystem implements System {
     world = this.renderText(world)
     world = this.renderImages(world)
     world = this.renderTextInputs(world)
+    world = this.renderDropdowns(world)
     return world
   }
 
@@ -278,9 +282,8 @@ export class RenderSystem implements System {
       ctx.save()
       ctx.translate(x, y)
 
-      ctx.fillStyle = 'white'
-
       if (hasComponent(world, UIText, entity)) {
+        ctx.fillStyle = 'white'
         const labelText = world.assets.getAssetById<string>(UIText.textId[entity]) || ''
         ctx.font = '16px chakra_petch'
         ctx.textBaseline = 'bottom'
@@ -323,6 +326,73 @@ export class RenderSystem implements System {
         ctx.strokeStyle = 'black'
         ctx.lineWidth = 2
         ctx.stroke()
+      }
+
+      ctx.restore()
+    }
+
+    return world
+  }
+
+  private renderDropdowns(world: ExtendedWorld): ExtendedWorld {
+    const ctx = this.ctx
+
+    for (const entity of this.dropdownQuery(world)) {
+      if (!UIRenderable.visible[entity]) continue
+
+      const x = UIPosition.x[entity]
+      const y = UIPosition.y[entity]
+
+      const width = UIRenderable.width[entity]
+      const height = UIRenderable.height[entity]
+
+      ctx.save()
+      ctx.translate(x, y)
+
+      if (hasComponent(world, UIText, entity)) {
+        ctx.fillStyle = 'white'
+        const labelText = world.assets.getAssetById<string>(UIText.textId[entity]) || ''
+        ctx.font = '16px chakra_petch'
+        ctx.textBaseline = 'bottom'
+        ctx.fillText(labelText, 0, -5)
+      }
+
+      ctx.fillStyle = colorToCss(UIColor.color[entity])
+      ctx.fillRect(0, 0, width, height)
+      ctx.strokeStyle = 'black'
+      ctx.lineWidth = 2
+      ctx.strokeRect(0, 0, width, height)
+
+      const options = getDropdownOptions(entity)
+      if (!options || options.length === 0) {
+        ctx.restore()
+        continue
+      }
+      const selectedIndex = UIDropdown.selectedIndex[entity]
+      const selectedOption = options[selectedIndex]
+
+      ctx.fillStyle = 'black'
+      ctx.font = '16px chakra_petch'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(selectedOption.label, 5, height / 2, width - 10)
+
+      if (UIDropdown.open[entity]) {
+        const optionHeight = height
+        for (let i = 0; i < options.length; i++) {
+          ctx.fillStyle = i === selectedIndex ? 'lightgray' : 'white'
+          ctx.fillRect(0, height + i * optionHeight, width, optionHeight)
+          ctx.strokeStyle = 'black'
+          ctx.lineWidth = 1
+          ctx.strokeRect(0, height + i * optionHeight, width, optionHeight)
+
+          ctx.fillStyle = 'black'
+          ctx.fillText(
+            options[i].label,
+            5,
+            height + i * optionHeight + optionHeight / 2,
+            width - 10
+          )
+        }
       }
 
       ctx.restore()
