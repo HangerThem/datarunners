@@ -5,7 +5,7 @@ import { Dialog, DialogText } from '../components/dialog'
 import { getCurrentLineText } from '../../utils/text'
 import { UIButton } from '../components/ui/uiButton'
 import { UIRenderable } from '../components/ui/uiRenderable'
-import { colorToCss } from '../../utils/colors'
+import { blendColors, colorToCss, hexColor } from '../../utils/colors'
 import { wrapText } from '../../utils/text'
 import { UITexture } from '../components/ui/uiTexture'
 import { System } from './system'
@@ -20,6 +20,7 @@ import { UITextInput } from '../components/ui/uiTextInput'
 import { UIFont } from '../components/ui/uiFont'
 import { UIDropdown } from '../components/ui/uiDropdown'
 import { getDropdownOptions } from '../../utils/dropdown'
+import { UIDropdownOption } from '../components/ui/uiDropdownOption'
 
 export class RenderSystem implements System {
   private ctx: CanvasRenderingContext2D
@@ -30,6 +31,7 @@ export class RenderSystem implements System {
   private imageQuery = defineQuery([UIPosition, Image])
   private textInputQuery = defineQuery([UIPosition, UITextInput])
   private dropdownQuery = defineQuery([UIPosition, UIDropdown])
+  private dropdownOptionQuery = defineQuery([UIPosition, UIDropdownOption])
 
   constructor() {
     this.ctx = world.renderer.ctx
@@ -363,37 +365,46 @@ export class RenderSystem implements System {
       ctx.lineWidth = 2
       ctx.strokeRect(0, 0, width, height)
 
-      const options = getDropdownOptions(entity)
-      if (!options || options.length === 0) {
-        ctx.restore()
-        continue
-      }
+      const optionsEntitis = this.dropdownOptionQuery(world).filter(
+        (e) => UIDropdownOption.parentDropdown[e] === entity
+      )
+      const options = getDropdownOptions(entity)!
+
       const selectedIndex = UIDropdown.selectedIndex[entity]
       const selectedOption = options[selectedIndex]
+
+      for (let i = 0; i < optionsEntitis.length; i++) {
+        if (UIDropdown.open[entity] === 0 || UIRenderable.visible[optionsEntitis[i]] === 0) {
+          continue
+        }
+        const optionEntity = optionsEntitis[i]
+        ctx.save()
+        ctx.translate(UIPosition.x[optionEntity] - x, UIPosition.y[optionEntity] - y)
+        const optionIndex = UIDropdownOption.optionIndex[optionEntity]
+        const option = options[optionIndex]
+
+        if (optionIndex === selectedIndex) {
+          ctx.fillStyle = colorToCss(blendColors(UIColor.color[entity], hexColor('#000000ff'), 0.5))
+        } else {
+          ctx.fillStyle = colorToCss(UIColor.color[entity])
+        }
+        ctx.fillRect(0, 0, width, height)
+        ctx.strokeStyle = 'black'
+        ctx.lineWidth = 2
+        ctx.strokeRect(0, 0, width, height)
+
+        ctx.fillStyle = 'black'
+        ctx.font = '16px chakra_petch'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(option.label, 5, height / 2, width - 10)
+
+        ctx.restore()
+      }
 
       ctx.fillStyle = 'black'
       ctx.font = '16px chakra_petch'
       ctx.textBaseline = 'middle'
       ctx.fillText(selectedOption.label, 5, height / 2, width - 10)
-
-      if (UIDropdown.open[entity]) {
-        const optionHeight = height
-        for (let i = 0; i < options.length; i++) {
-          ctx.fillStyle = i === selectedIndex ? 'lightgray' : 'white'
-          ctx.fillRect(0, height + i * optionHeight, width, optionHeight)
-          ctx.strokeStyle = 'black'
-          ctx.lineWidth = 1
-          ctx.strokeRect(0, height + i * optionHeight, width, optionHeight)
-
-          ctx.fillStyle = 'black'
-          ctx.fillText(
-            options[i].label,
-            5,
-            height + i * optionHeight + optionHeight / 2,
-            width - 10
-          )
-        }
-      }
 
       ctx.restore()
     }

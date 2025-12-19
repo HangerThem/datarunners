@@ -11,6 +11,7 @@ import { UITextInput } from '../components/ui/uiTextInput'
 import { UIButton } from '../components/ui/uiButton'
 import { CheckboxGroup } from '../components/checkboxGroup'
 import { UIDropdown } from '../components/ui/uiDropdown'
+import { UIDropdownOption } from '../components/ui/uiDropdownOption'
 
 export class UISystem implements System {
   private sellectableQuery = defineQuery([UIPosition, UISelectable])
@@ -22,34 +23,39 @@ export class UISystem implements System {
   }
 
   private updateSellectables(world: ExtendedWorld): ExtendedWorld {
-    for (const entity of this.sellectableQuery(world)) {
-      const mouseX = world.mousePosition.x
-      const mouseY = world.mousePosition.y
-
-      const x = UIPosition.x[entity]
-      const y = UIPosition.y[entity]
-
-      const width = UIRenderable.width[entity]
-      const height = UIRenderable.height[entity]
-
-      const isHovered = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height
-
-      if (isHovered && hasComponent(world, UITextInput, entity)) {
-        world.cursor = 'text'
-      } else if (isHovered) {
-        world.cursor = 'pointer'
+    for (const entity of this.sellectableQuery(world).sort(
+      (a, b) => UIRenderable.sortOrder[b] - UIRenderable.sortOrder[a]
+    )) {
+      if (UIRenderable.visible[entity] === 0) {
+        continue
       }
 
-      if (
-        (!isHovered && world.input.keysDown[getKeyId('MouseLeft')]) ||
-        world.input.keysDown[getKeyId('Escape')]
-      ) {
+      const isHovered = this.isHovered(world, entity)
+
+      if (isHovered) {
         if (hasComponent(world, UITextInput, entity)) {
-          UITextInput.focused[entity] = 0
-        } else if (hasComponent(world, UIDropdown, entity)) {
-          UIDropdown.open[entity] = 0
+          world.cursor = 'text'
+        } else {
+          world.cursor = 'pointer'
         }
+
+        break
       }
+    }
+
+    for (const entity of this.sellectableQuery(world).sort(
+      (a, b) => UIRenderable.sortOrder[b] - UIRenderable.sortOrder[a]
+    )) {
+      if (hasComponent(world, UIDropdownOption, entity)) {
+        const parent = UIDropdownOption.parentDropdown[entity]
+        UIRenderable.visible[entity] = UIDropdown.open[parent]
+      }
+
+      if (UIRenderable.visible[entity] === 0) {
+        continue
+      }
+
+      const isHovered = this.isHovered(world, entity)
 
       UISelectable.hovered[entity] = isHovered ? 1 : 0
 
@@ -89,11 +95,71 @@ export class UISystem implements System {
         } else if (hasComponent(world, UITextInput, entity)) {
           UITextInput.focused[entity] = 1
         } else if (hasComponent(world, UIDropdown, entity)) {
-          UIDropdown.open[entity] = UIDropdown.open[entity] ? 0 : 1
+          switch (UIDropdown.open[entity]) {
+            case 0:
+              UIDropdown.open[entity] = 1
+              break
+            case 1:
+              UIDropdown.open[entity] = 0
+              break
+          }
+        } else if (hasComponent(world, UIDropdownOption, entity)) {
+          const parentDropdown = UIDropdownOption.parentDropdown[entity]
+          const optionIndex = UIDropdownOption.optionIndex[entity]
+          UIDropdown.selectedIndex[parentDropdown] = optionIndex
+          UIDropdown.open[parentDropdown] = 0
+        }
+
+        break
+      }
+
+      if (
+        (!isHovered &&
+          !this.isDropdownChildHovered(world, entity) &&
+          world.input.keysDown[getKeyId('MouseLeft')]) ||
+        world.input.keysDown[getKeyId('Escape')]
+      ) {
+        if (hasComponent(world, UITextInput, entity)) {
+          UITextInput.focused[entity] = 0
+        } else if (hasComponent(world, UIDropdown, entity)) {
+          UIDropdown.open[entity] = 0
         }
       }
     }
 
     return world
+  }
+
+  private isDropdownChildHovered(world: ExtendedWorld, entity: number): boolean {
+    if (!hasComponent(world, UIDropdown, entity)) {
+      return false
+    }
+
+    for (const optionEntity of this.sellectableQuery(world)) {
+      if (
+        hasComponent(world, UIDropdownOption, optionEntity) &&
+        UIDropdownOption.parentDropdown[optionEntity] === entity &&
+        UIRenderable.visible[optionEntity] === 1
+      ) {
+        if (this.isHovered(world, optionEntity)) {
+          return true
+        }
+      }
+    }
+
+    return false
+  }
+
+  private isHovered(world: ExtendedWorld, entity: number): boolean {
+    const mouseX = world.mousePosition.x
+    const mouseY = world.mousePosition.y
+
+    const x = UIPosition.x[entity]
+    const y = UIPosition.y[entity]
+
+    const width = UIRenderable.width[entity]
+    const height = UIRenderable.height[entity]
+
+    return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height
   }
 }

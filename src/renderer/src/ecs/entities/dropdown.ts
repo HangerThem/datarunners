@@ -10,6 +10,7 @@ import { UIColor } from '../components/ui/uiColor'
 import { UIDropdownType } from '../../types/dropdown.types'
 import { UIDropdown } from '../components/ui/uiDropdown'
 import { setDropdownOptions } from '../../utils/dropdown'
+import { UIDropdownOption } from '../components/ui/uiDropdownOption'
 
 export function createDropdownEntity(params: UIDropdownType): number {
   const entity = addEntity(world)
@@ -50,6 +51,29 @@ export function createDropdownEntity(params: UIDropdownType): number {
   } else {
     addComponent(world, UIColor, entity)
     UIColor.color[entity] = params.backgroundColor
+  }
+
+  for (let i = 0; i < params.options.length; i++) {
+    const optionEntity = addEntity(world)
+
+    addComponent(world, UISelectable, optionEntity)
+    addComponent(world, UIRenderable, optionEntity)
+    addComponent(world, UIPosition, optionEntity)
+    addComponent(world, UIDropdownOption, optionEntity)
+
+    UISelectable.hovered[optionEntity] = 0
+    UISelectable.pressed[optionEntity] = 0
+
+    UIRenderable.width[optionEntity] = params.width
+    UIRenderable.height[optionEntity] = params.height
+    UIRenderable.visible[optionEntity] = 0
+    UIRenderable.sortOrder[optionEntity] = 1
+
+    UIPosition.x[optionEntity] = params.x
+    UIPosition.y[optionEntity] = params.y + (i + 1) * params.height
+
+    UIDropdownOption.optionIndex[optionEntity] = i
+    UIDropdownOption.parentDropdown[optionEntity] = entity
   }
 
   setDropdownOptions(entity, params.options)
