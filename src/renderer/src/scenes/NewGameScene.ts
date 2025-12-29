@@ -20,17 +20,31 @@ import { createButtonEntity } from '../ecs/entities/button'
 import { DifficultyOptions } from '../data/DifficultyOptions'
 import { UIDropdownSchema } from '../types/dropdown.types'
 import { createDropdownEntity } from '../ecs/entities/dropdown'
+import { UIRangeSchema } from '../types/range.types'
+import { createRangeEntity } from '../ecs/entities/range'
+import { UIRange } from '../ecs/components/ui/uiRange'
+import { WeatherModelOptions } from '../data/WeatherModelOptions'
+import { UICheckboxSchema } from '../types/checkbox.types'
+import { createCheckboxEntity } from '../ecs/entities/checkbox'
 
 interface NewGameData {
-  difficulty: string | number
   seed: number
+  difficulty: string | number
+  weatherModel: string | number
+  eventIntensity: number
+  resourcesAbundance: number
+  ironmanMode: boolean
 }
 
 export class NewGameScene implements Scene {
   private systems: System[]
   private newGameData: NewGameData = {
+    seed: Math.floor(Math.random() * 1000000),
     difficulty: DifficultyOptions[1].value,
-    seed: Math.floor(Math.random() * 1000000)
+    weatherModel: WeatherModelOptions[0].value,
+    eventIntensity: 50,
+    resourcesAbundance: 50,
+    ironmanMode: false
   }
   private assets: SceneAssets = {
     images: [{ name: 'checkbox_normal', src: 'ui/checkbox_normal.png' }],
@@ -127,6 +141,96 @@ export class NewGameScene implements Scene {
     }
 
     createDropdownEntity(difficultyDropdown.data)
+
+    const eventIntensityRange = UIRangeSchema.safeDecode({
+      labelId: world.assets.addTextAsset('event_intensity_range_label', 'Event Intensity:'),
+      x: world.renderer.width / 2 - 100,
+      y: 500,
+      width: 300,
+      height: 40,
+      value: 50,
+      min: 0,
+      max: 100,
+      step: 5,
+      callbackId: world.callbacks.registerCallback((entityId: number) => {
+        const value = UIRange.value[entityId]
+        this.newGameData.eventIntensity = value
+      })
+    })
+
+    if (!eventIntensityRange.success) {
+      console.error('Failed to create volume range:', eventIntensityRange.error)
+      return
+    }
+
+    createRangeEntity(eventIntensityRange.data)
+
+    const weatherModelDropdown = UIDropdownSchema.safeDecode({
+      labelId: world.assets.addTextAsset('weather_model_dropdown_label', 'Select Weather Model:'),
+      x: world.renderer.width / 2 - 100,
+      y: 400,
+      width: 200,
+      height: 40,
+      selectedIndex: 0,
+      options: WeatherModelOptions,
+      foregroundColor: hexColor('#FFFFFFFF'),
+      hoverForegroundColor: hexColor('#00FF00FF'),
+      pressedForegroundColor: hexColor('#00FF00FF'),
+      backgroundColor: hexColor('#CCCCCCFF')
+    })
+
+    if (!weatherModelDropdown.success) {
+      console.error('Failed to create weather model dropdown:', weatherModelDropdown.error)
+      return
+    }
+
+    createDropdownEntity(weatherModelDropdown.data)
+
+    const ironmanCheckbox = UICheckboxSchema.safeDecode({
+      labelId: world.assets.addTextAsset('ironman_mode_checkbox_label', 'Enable Ironman Mode'),
+      x: world.renderer.width / 2 - 100,
+      y: 300,
+      width: 32,
+      height: 32,
+      textureSizeX: 64,
+      textureSizeY: 64,
+      textureId: world.assets.getAssetId('checkbox_normal')!,
+      callbackId: world.callbacks.registerCallback((entityId: number) => {
+        const checked = UIRange.value[entityId]
+        this.newGameData.ironmanMode = !!checked
+      }),
+      checked: this.newGameData.ironmanMode
+    })
+
+    if (!ironmanCheckbox.success) {
+      console.error('Failed to create ironman mode checkbox:', ironmanCheckbox.error)
+      return
+    }
+
+    createCheckboxEntity(ironmanCheckbox.data)
+
+    const resourcesRangeEntity = UIRangeSchema.safeDecode({
+      labelId: world.assets.addTextAsset('resources_abundance_range_label', 'Resources Abundance:'),
+      x: world.renderer.width / 2 - 100,
+      y: 200,
+      width: 300,
+      height: 40,
+      value: 50,
+      min: 0,
+      max: 100,
+      step: 5,
+      callbackId: world.callbacks.registerCallback((entityId: number) => {
+        const value = UIRange.value[entityId]
+        this.newGameData.resourcesAbundance = value
+      })
+    })
+
+    if (!resourcesRangeEntity.success) {
+      console.error('Failed to create resources abundance range:', resourcesRangeEntity.error)
+      return
+    }
+
+    createRangeEntity(resourcesRangeEntity.data)
   }
 
   update(dt: number): void {

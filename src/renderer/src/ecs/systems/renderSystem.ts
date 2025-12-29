@@ -21,6 +21,7 @@ import { UIFont } from '../components/ui/uiFont'
 import { UIDropdown } from '../components/ui/uiDropdown'
 import { getDropdownOptions } from '../../utils/dropdown'
 import { UIDropdownOption } from '../components/ui/uiDropdownOption'
+import { UIRange } from '../components/ui/uiRange'
 
 export class RenderSystem implements System {
   private ctx: CanvasRenderingContext2D
@@ -32,6 +33,7 @@ export class RenderSystem implements System {
   private textInputQuery = defineQuery([UIPosition, UITextInput])
   private dropdownQuery = defineQuery([UIPosition, UIDropdown])
   private dropdownOptionQuery = defineQuery([UIPosition, UIDropdownOption])
+  private rangeQuery = defineQuery([UIPosition, UIRange])
 
   constructor() {
     this.ctx = world.renderer.ctx
@@ -47,6 +49,8 @@ export class RenderSystem implements System {
     world = this.renderText(world)
     world = this.renderImages(world)
     world = this.renderTextInputs(world)
+    world = this.renderRanges(world)
+
     world = this.renderDropdowns(world)
     return world
   }
@@ -294,7 +298,7 @@ export class RenderSystem implements System {
 
       ctx.fillRect(0, 0, width, height)
 
-      ctx.strokeStyle = UITextInput.focused[entity] ? 'blue' : 'gray'
+      ctx.strokeStyle = UITextInput.focused[entity] ? '#00ff00ff' : '#000000ff'
       ctx.lineWidth = 2
       ctx.strokeRect(0, 0, width, height)
 
@@ -359,7 +363,7 @@ export class RenderSystem implements System {
         ctx.fillText(labelText, 0, -5)
       }
 
-      ctx.fillStyle = colorToCss(UIColor.color[entity])
+      ctx.fillStyle = '#00ff00ff'
       ctx.fillRect(0, 0, width, height)
       ctx.strokeStyle = 'black'
       ctx.lineWidth = 2
@@ -384,9 +388,9 @@ export class RenderSystem implements System {
         const option = options[optionIndex]
 
         if (optionIndex === selectedIndex) {
-          ctx.fillStyle = colorToCss(blendColors(UIColor.color[entity], hexColor('#000000ff'), 0.5))
+          ctx.fillStyle = colorToCss(blendColors(hexColor('#00ff00ff'), hexColor('#000000ff'), 0.5))
         } else {
-          ctx.fillStyle = colorToCss(UIColor.color[entity])
+          ctx.fillStyle = '#00ff00ff'
         }
         ctx.fillRect(0, 0, width, height)
         ctx.strokeStyle = 'black'
@@ -405,6 +409,50 @@ export class RenderSystem implements System {
       ctx.font = '16px chakra_petch'
       ctx.textBaseline = 'middle'
       ctx.fillText(selectedOption.label, 5, height / 2, width - 10)
+
+      ctx.restore()
+    }
+
+    return world
+  }
+
+  private renderRanges(world: ExtendedWorld): ExtendedWorld {
+    const ctx = this.ctx
+
+    for (const entity of this.rangeQuery(world)) {
+      if (!UIRenderable.visible[entity]) continue
+
+      const x = UIPosition.x[entity]
+      const y = UIPosition.y[entity]
+
+      const width = UIRenderable.width[entity]
+      const height = UIRenderable.height[entity]
+
+      ctx.save()
+      ctx.translate(x, y)
+
+      if (hasComponent(world, UIText, entity)) {
+        ctx.fillStyle = 'white'
+        const labelText = world.assets.getAssetById<string>(UIText.textId[entity]) || ''
+        ctx.font = '16px chakra_petch'
+        ctx.textBaseline = 'bottom'
+        ctx.fillText(labelText, 0, -5)
+      }
+
+      ctx.fillStyle = colorToCss(blendColors(hexColor('#00ff00ff'), hexColor('#000000ff'), 0.5))
+      ctx.fillRect(0, 0, width, height)
+
+      const value = UIRange.value[entity]
+      const min = UIRange.min[entity]
+      const max = UIRange.max[entity]
+      const fillWidth = ((value - min) / (max - min)) * width
+
+      ctx.fillStyle = '#00ff00ff'
+      ctx.fillRect(0, 0, fillWidth, height)
+
+      ctx.strokeStyle = 'black'
+      ctx.lineWidth = 2
+      ctx.strokeRect(0, 0, width, height)
 
       ctx.restore()
     }

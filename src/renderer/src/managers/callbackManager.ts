@@ -1,5 +1,6 @@
 export class CallbackManager {
-  private callbacks: Map<number, () => void>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private callbacks: Map<number, (...args: any[]) => void>
   private nextId: number
 
   constructor() {
@@ -7,15 +8,22 @@ export class CallbackManager {
     this.nextId = 1
   }
 
-  registerCallback(callback: () => void): number {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  registerCallback(callback: (...args: any[]) => void): number {
     const id = this.nextId++
     this.callbacks.set(id, callback)
     return id
   }
 
-  invokeCallback(id: number): void {
+  invokeCallback(id: number): void
+  invokeCallback(id: number, entityId: number): void
+  invokeCallback(id: number, entityId?: number): void {
     const callback = this.callbacks.get(id)
-    if (callback) {
+    if (!callback) return
+
+    if (entityId !== undefined) {
+      callback(entityId)
+    } else {
       callback()
     }
   }

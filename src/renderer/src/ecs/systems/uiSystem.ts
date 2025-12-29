@@ -12,6 +12,7 @@ import { UIButton } from '../components/ui/uiButton'
 import { CheckboxGroup } from '../components/checkboxGroup'
 import { UIDropdown } from '../components/ui/uiDropdown'
 import { UIDropdownOption } from '../components/ui/uiDropdownOption'
+import { UIRange } from '../components/ui/uiRange'
 
 export class UISystem implements System {
   private sellectableQuery = defineQuery([UIPosition, UISelectable])
@@ -63,6 +64,29 @@ export class UISystem implements System {
       const clicked = isHovered && world.input.keysReleased[getKeyId('MouseLeft')]
 
       UISelectable.pressed[entity] = isPressed ? 1 : 0
+
+      if (isPressed && hasComponent(world, UIRange, entity)) {
+        const mouseX = world.mousePosition.x
+        const x = UIPosition.x[entity]
+        const width = UIRenderable.width[entity]
+
+        const ratio = Math.min(Math.max((mouseX - x) / width, 0), 1)
+        const min = UIRange.min[entity]
+        const max = UIRange.max[entity]
+        const step = UIRange.step[entity]
+
+        let value = min + ratio * (max - min)
+        value = Math.round(value / step) * step
+
+        UIRange.value[entity] = value
+
+        const callback = UICallback.onClick[entity]
+        if (callback) {
+          world.callbacks.invokeCallback(callback, entity)
+        }
+
+        continue
+      }
 
       if (clicked) {
         if (hasComponent(world, UIButton, entity)) {
