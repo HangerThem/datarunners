@@ -6,7 +6,7 @@ export const UICheckboxSchema = z.object({
     .number()
     .min(0, 'Text ID must be a valid asset ID')
     .refine((id) => world.assets.isValidAsset(id, 'text'), {
-      message: 'Text ID must refer to a valid text asset'
+      error: 'Text ID must refer to a valid text asset'
     }),
   x: z.number(),
   y: z.number(),
@@ -16,7 +16,7 @@ export const UICheckboxSchema = z.object({
     .number()
     .min(0, 'Texture ID must be a valid asset ID')
     .refine((id) => world.assets.isValidAsset(id, 'image'), {
-      message: 'Texture ID must refer to a valid image asset'
+      error: 'Texture ID must refer to a valid image asset'
     }),
   textureSizeX: z.number().default(100),
   textureSizeY: z.number().default(100),
@@ -29,7 +29,7 @@ export const UICheckboxSchema = z.object({
       (id) => {
         return world.callbacks.isValidCallback(id)
       },
-      { message: 'Callback ID must refer to a registered callback' }
+      { error: 'Callback ID must refer to a registered callback' }
     ),
   checked: z.boolean().default(false),
   groupId: z.number().min(0, 'Group ID must be a valid group ID').optional()

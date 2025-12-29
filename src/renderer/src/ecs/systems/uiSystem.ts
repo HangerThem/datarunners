@@ -13,12 +13,15 @@ import { CheckboxGroup } from '../components/checkboxGroup'
 import { UIDropdown } from '../components/ui/uiDropdown'
 import { UIDropdownOption } from '../components/ui/uiDropdownOption'
 import { UIRange } from '../components/ui/uiRange'
+import { isEditorMode } from '../../main'
 
 export class UISystem implements System {
   private sellectableQuery = defineQuery([UIPosition, UISelectable])
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   update(world: ExtendedWorld, _dt: number): ExtendedWorld {
+    if (isEditorMode()) return world
+
     world = this.updateSellectables(world)
     return world
   }

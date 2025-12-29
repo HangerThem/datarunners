@@ -67,3 +67,10 @@ export function clearStringPool(): void {
   Generations.length = 0
   FreeList.length = 0
 }
+
+export function isValidStringHandle(handle: StringHandle): boolean {
+  const index = indexOf(handle)
+  const gen = genOf(handle)
+
+  return index >= 0 && index < StringPool.length && Generations[index] === gen
+}

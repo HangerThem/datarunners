@@ -6,15 +6,9 @@ import { UISystem } from '../ecs/systems/uiSystem'
 import { CursorSystem } from '../ecs/systems/cursorSystem'
 import { InputSystem } from '../ecs/systems/inputSystem'
 import { hexColor } from '../utils/colors'
-import { addComponent, addEntity } from 'bitecs'
-import { UIRenderable } from '../ecs/components/ui/uiRenderable'
-import { UIPosition } from '../ecs/components/ui/uiPosition'
-import { UIText } from '../ecs/components/ui/uiText'
 import { allocString, editString } from '../utils/stringAllocator'
-import { UISelectable } from '../ecs/components/ui/uiSelectable'
 import { TextInputSystem } from '../ecs/systems/textInputSystem'
 import { UITextInput } from '../ecs/components/ui/uiTextInput'
-import { UIFont } from '../ecs/components/ui/uiFont'
 import { UIButtonSchema } from '../types/button.types'
 import { createButtonEntity } from '../ecs/entities/button'
 import { DifficultyOptions } from '../data/DifficultyOptions'
@@ -26,6 +20,8 @@ import { UIRange } from '../ecs/components/ui/uiRange'
 import { WeatherModelOptions } from '../data/WeatherModelOptions'
 import { UICheckboxSchema } from '../types/checkbox.types'
 import { createCheckboxEntity } from '../ecs/entities/checkbox'
+import { UITextInputSchema } from '../types/textInput.types'
+import { createTextInputEntity } from '../ecs/entities/textInput'
 
 interface NewGameData {
   seed: number
@@ -66,36 +62,30 @@ export class NewGameScene implements Scene {
   async load(): Promise<void> {
     await world.assets.loadSceneAssets(this.assets)
 
-    const inputEntity = addEntity(world)
+    const seedInput = UITextInputSchema.safeDecode({
+      labelId: world.assets.addTextAsset('seed_input_label', 'Enter Seed (Numbers Only):'),
+      x: world.renderer.width / 2 - 100,
+      y: 720,
+      width: 200,
+      height: 40,
+      callbackId: world.callbacks.registerCallback((entityId: number) => {
+        const text = world.assets.getAssetById<string>(UITextInput.textId[entityId])!
+        this.newGameData.seed = parseInt(text) || 0
+      }),
+      textId: allocString(this.newGameData.seed.toString()),
+      maxLength: 8,
+      numeric: true,
+      fontSize: 24,
+      fontFamilyId: world.assets.getAssetId('chakra_petch')!,
+      color: hexColor('#000000ff')
+    })
 
-    addComponent(world, UIText, inputEntity)
-    addComponent(world, UIPosition, inputEntity)
-    addComponent(world, UIRenderable, inputEntity)
-    addComponent(world, UISelectable, inputEntity)
-    addComponent(world, UITextInput, inputEntity)
-    addComponent(world, UIFont, inputEntity)
+    if (!seedInput.success) {
+      console.error('Failed to create seed input:', seedInput.error)
+      return
+    }
 
-    UIPosition.x[inputEntity] = world.renderer.width / 2 - 100
-    UIPosition.y[inputEntity] = 720
-
-    UIRenderable.width[inputEntity] = 200
-    UIRenderable.height[inputEntity] = 40
-    UIRenderable.visible[inputEntity] = 1
-
-    UIText.textId[inputEntity] = world.assets.addTextAsset(
-      'seed_input_label',
-      'Enter Seed (Numbers Only):'
-    )
-    UIText.textSource[inputEntity] = 0
-
-    UITextInput.maxLength[inputEntity] = 8
-    UITextInput.numeric[inputEntity] = 1
-    UITextInput.cursor[inputEntity] = this.newGameData.seed.toString().length
-    UITextInput.textId[inputEntity] = allocString(this.newGameData.seed.toString())
-
-    UIFont.fontSize[inputEntity] = 24
-    UIFont.fontFamilyId[inputEntity] = world.assets.getAssetId('chakra_petch')!
-    UIFont.color[inputEntity] = hexColor('#000000ff')
+    const seedInputEntity = createTextInputEntity(seedInput.data)
 
     const newSeedButton = UIButtonSchema.safeDecode({
       textId: world.assets.addTextAsset('new_seed_button_text', 'New Seed'),
@@ -109,8 +99,8 @@ export class NewGameScene implements Scene {
       callbackId: world.callbacks.registerCallback(() => {
         world.audio.playSound('click_sound')
         this.newGameData.seed = Math.floor(Math.random() * 1000000)
-        editString(UITextInput.textId[inputEntity], this.newGameData.seed.toString())
-        UITextInput.cursor[inputEntity] = this.newGameData.seed.toString().length
+        editString(UITextInput.textId[seedInputEntity], this.newGameData.seed.toString())
+        UITextInput.cursor[seedInputEntity] = this.newGameData.seed.toString().length
       })
     })
 

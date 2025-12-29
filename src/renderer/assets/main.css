@@ -4,3 +4,20 @@
   box-sizing: border-box;
   overflow: hidden;
 }
+
+.dev-tools {
+  display: none;
+}
+
+.editor-mode .dev-tools {
+  display: block;
+  position: fixed;
+  top: 0;
+  right: 0;
+  background-color: #ff0000;
+  color: white;
+  padding: 10px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  z-index: 1000;
+}

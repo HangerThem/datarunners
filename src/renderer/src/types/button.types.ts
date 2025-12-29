@@ -8,7 +8,7 @@ export const UIButtonSchema = z
       .number()
       .min(0, 'Text ID must be a valid asset ID')
       .refine((id) => world.assets.isValidAsset(id, 'text'), {
-        message: 'Text ID must refer to a valid text asset'
+        error: 'Text ID must refer to a valid text asset'
       }),
     x: z.number(),
     y: z.number(),
@@ -19,7 +19,7 @@ export const UIButtonSchema = z
       .min(0, 'Texture ID must be a valid asset ID')
       .optional()
       .refine((id) => id === undefined || world.assets.isValidAsset(id, 'image'), {
-        message: 'Texture ID must refer to a valid image asset'
+        error: 'Texture ID must refer to a valid image asset'
       }),
     textureSizeX: z.number().default(100),
     textureSizeY: z.number().default(100),
@@ -28,19 +28,19 @@ export const UIButtonSchema = z
     foregroundColor: z
       .number()
       .default(hexColor('#ffffffff'))
-      .refine(validateColor, { message: 'Foreground color must be a valid RGBA color' }),
+      .refine(validateColor, { error: 'Foreground color must be a valid RGBA color' }),
     hoverForegroundColor: z
       .number()
-      .refine(validateColor, { message: 'Hover foreground color must be a valid RGBA color' })
+      .refine(validateColor, { error: 'Hover foreground color must be a valid RGBA color' })
       .optional(),
     pressedForegroundColor: z
       .number()
-      .refine(validateColor, { message: 'Pressed foreground color must be a valid RGBA color' })
+      .refine(validateColor, { error: 'Pressed foreground color must be a valid RGBA color' })
       .optional(),
     backgroundColor: z
       .number()
       .default(hexColor('#858585ff'))
-      .refine(validateColor, { message: 'Background color must be a valid RGBA color' }),
+      .refine(validateColor, { error: 'Background color must be a valid RGBA color' }),
     callbackId: z
       .number()
       .min(0, 'Callback ID must be a valid callback ID')
@@ -48,7 +48,7 @@ export const UIButtonSchema = z
         (id) => {
           return world.callbacks.isValidCallback(id)
         },
-        { message: 'Callback ID must refer to a registered callback' }
+        { error: 'Callback ID must refer to a registered callback' }
       )
   })
   .transform((data) => ({

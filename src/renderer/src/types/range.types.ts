@@ -6,7 +6,7 @@ export const UIRangeSchema = z.object({
     .number()
     .min(0, 'Text ID must be a valid asset ID')
     .refine((id) => world.assets.isValidAsset(id, 'text'), {
-      message: 'Text ID must refer to a valid text asset'
+      error: 'Text ID must refer to a valid text asset'
     }),
   x: z.number(),
   y: z.number(),
@@ -19,7 +19,7 @@ export const UIRangeSchema = z.object({
       (id) => {
         return world.callbacks.isValidCallback(id)
       },
-      { message: 'Callback ID must refer to a registered callback' }
+      { error: 'Callback ID must refer to a registered callback' }
     ),
   value: z.number().default(0),
   min: z.number().default(0),

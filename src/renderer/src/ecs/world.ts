@@ -6,6 +6,7 @@ import { CursorType } from '../types/cursor'
 import { SceneManager } from '../managers/sceneManager'
 import { getKeyId, mouseButtonToCode } from '../utils/key'
 import { clearStringPool } from '../utils/stringAllocator'
+import { isEditorMode, setEditorMode, setGameMode } from '../main'
 
 export interface InputResource {
   keysDown: Uint8Array
@@ -117,6 +118,14 @@ function keydownHandler(e: KeyboardEvent): void {
 
 function keyupHandler(e: KeyboardEvent): void {
   preventDefaultHandler(e)
+
+  if (e.code === 'F1') {
+    if (isEditorMode()) {
+      setGameMode()
+    } else {
+      setEditorMode()
+    }
+  }
 
   const key = getKeyId(e.code)
 

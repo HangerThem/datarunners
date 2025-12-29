@@ -7,6 +7,7 @@ import { UISystem } from '../ecs/systems/uiSystem'
 import { CursorSystem } from '../ecs/systems/cursorSystem'
 import { InputSystem } from '../ecs/systems/inputSystem'
 import { registerEntities } from '../ecs/entities/registerEntities'
+import { EditorSystem } from '../ecs/systems/editorSystem'
 
 export class MainMenuScene implements Scene {
   private systems: System[]
@@ -36,6 +37,7 @@ export class MainMenuScene implements Scene {
 
   constructor() {
     this.systems = [
+      new EditorSystem(),
       new DialogSystem(),
       new UISystem(),
       new CursorSystem(),

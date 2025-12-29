@@ -3,7 +3,7 @@ import { asset } from '../utils/assets'
 import { SceneAssets } from '../scenes/Scene'
 
 interface Asset {
-  dataType: 'image' | 'audio' | 'text'
+  dataType: 'image' | 'audio' | 'text' | 'font'
   data: HTMLImageElement | Howl | string
 }
 
@@ -110,7 +110,7 @@ export class AssetsManager {
     const font = new FontFace(name, `url(${asset(src, 'font')})`)
 
     await font.load()
-    this.addTextAsset(name, name)
+    this.assets.set(name, { dataType: 'font', data: name })
     document.fonts.add(font)
   }
 
@@ -161,7 +161,7 @@ export class AssetsManager {
     this.assets.delete(name)
   }
 
-  isValidAsset(id: number, type: 'image' | 'audio' | 'text'): boolean {
+  isValidAsset(id: number, type: 'image' | 'audio' | 'text' | 'font'): boolean {
     const keys = Array.from(this.assets.keys())
     if (id >= 0 && id < keys.length) {
       const name = keys[id]
@@ -169,6 +169,19 @@ export class AssetsManager {
       return asset?.dataType === type
     }
     return false
+  }
+
+  getDefaultFont(): number {
+    const fontAsset = Array.from(this.assets.entries()).find(
+      ([, asset]) => asset.dataType === 'font'
+    )
+
+    if (fontAsset) {
+      const [name] = fontAsset
+      return this.getAssetId(name)
+    }
+
+    throw new Error('No font assets loaded')
   }
 
   unloadAll(): void {

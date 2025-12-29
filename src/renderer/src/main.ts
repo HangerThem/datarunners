@@ -5,10 +5,45 @@ import { NewGameScene } from './scenes/NewGameScene'
 import { SavesScene } from './scenes/SavesScene'
 import { SettingsScene } from './scenes/SettingsScene'
 
+enum Mode {
+  EDITOR,
+  GAME
+}
+
+let mode: Mode = Mode.GAME
+
+export function isEditorMode(): boolean {
+  return mode === Mode.EDITOR
+}
+
+export function setEditorMode(): void {
+  mode = Mode.EDITOR
+}
+
+export function setGameMode(): void {
+  mode = Mode.GAME
+}
+
+let selectedEntityId: number | null = null
+
+export function getSelectedEntityId(): number | null {
+  return selectedEntityId
+}
+
+export function setSelectedEntityId(entityId: number | null): void {
+  selectedEntityId = entityId
+}
+
 let last = performance.now()
 
 function startGameLoop(): void {
   function tick(): void {
+    if (isEditorMode()) {
+      document.body.classList.add('editor-mode')
+    } else {
+      document.body.classList.remove('editor-mode')
+    }
+
     const now = performance.now()
     const dt = now - last
     last = now
@@ -33,8 +68,6 @@ export async function initGameEngine(): Promise<void> {
   await world.scenes.loadScene('loading')
 
   world.scenes.getCurrentScene()!.update(0)
-
-  await new Promise((resolve) => setTimeout(resolve, 2500))
 
   await world.scenes.loadScene('main_menu')
 

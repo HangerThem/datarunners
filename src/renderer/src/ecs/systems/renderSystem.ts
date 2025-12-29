@@ -22,6 +22,7 @@ import { UIDropdown } from '../components/ui/uiDropdown'
 import { getDropdownOptions } from '../../utils/dropdown'
 import { UIDropdownOption } from '../components/ui/uiDropdownOption'
 import { UIRange } from '../components/ui/uiRange'
+import { getSelectedEntityId, isEditorMode } from '../../main'
 
 export class RenderSystem implements System {
   private ctx: CanvasRenderingContext2D
@@ -52,6 +53,18 @@ export class RenderSystem implements System {
     world = this.renderRanges(world)
 
     world = this.renderDropdowns(world)
+
+    if (isEditorMode() && getSelectedEntityId() !== null) {
+      const selectedEntity = getSelectedEntityId()!
+      const x = UIPosition.x[selectedEntity]
+      const y = UIPosition.y[selectedEntity]
+      const width = UIRenderable.width[selectedEntity]
+      const height = UIRenderable.height[selectedEntity]
+      this.ctx.fillStyle = 'red'
+      this.ctx.lineWidth = 2
+      this.ctx.strokeRect(x - 2, y - 2, width + 4, height + 4)
+    }
+
     return world
   }
 
